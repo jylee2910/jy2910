@@ -34,8 +34,19 @@ js/sys/battle.js      전투 모델(CT 턴, 데미지, 약점/실드/BREAK, 반�
 js/scenes/battle.js   전투 연출(돌진/시전/히트스톱/흔들림/넉백/팝업/브레이크/막타 슬로모션/페이즈 컷신/결과)
 js/ui/ui.js           창/ListMenu(손가락 커서)/대화창/선택지/배너/토스트/페이드
 js/ui/battleui.js     턴 순서, 파티 상태, 커맨드·어빌리티·아이템 메뉴, 대상 선택(키/탭), 적 약점 태그
+js/data/maps.js       마을/이끼 숲/수정 동굴 타일맵, NPC 대화 스크립트(talk(ctx)), 상자, 세이브 수정, 보스, 조우 테이블
+js/data/world.js      월드맵 노드/경로/인카운터 확률
+js/data/quests.js     퀘스트 (kill/collect/flag), sys/quests.js 진행·보고·보상
+js/scenes/title.js    타이틀(새 게임/이어하기), 엔딩, 게임오버
+js/scenes/field.js    그리드 이동(키 연속/탭 BFS), 추종 동료, 대화 ctx API, 상자, 세이브 수정(회복+저장), 인카운터, 보스 이벤트, 가림 디더링
+js/scenes/world.js    월드맵 디오라마(절차 생성) + 노드 선택 이동 + 경로 인카운터(전투 후 이어서 이동)
+js/ui/mainmenu.js     파티/장비/어빌리티(코스트·숙련·등록·공명)/아이템/퀘스트/저장/설정
+js/ui/shop.js         구매/판매(수량, 파티원별 장착 가능·능력치 변화)
 tools/export.html     생성 에셋 미리보기/PNG 저장
 ```
+
+## 디버그
+- window.__app (씬 등), window.__G (G.s 상태). 예: __G.s.loc={scene:'field',map:'cave',x:10,y:19,dir:'up'}; __app.startGame(false)
 
 ## 어빌리티 시스템 요약
 - 활성 어빌리티 = 고유(innate) ∪ 장착 무기 어빌리티(무기 부여, 코스트 없음) ∪ 등록(set, 코스트 ≤ 3+Lv/2)
@@ -47,7 +58,7 @@ tools/export.html     생성 에셋 미리보기/PNG 저장
 ## 단계
 - [x] ① 에셋 생성 구조 + 캐릭터 5종/NPC 6종/몬스터 12종/아이콘/타일, 스테이지+빌보드+디오라마 (스크린샷 확인 완료)
 - [x] ② 전투 + 어빌리티 시스템 (?test=battle&foes=slime,wolf&theme=field&lv=5&party=leon,sera,bran 으로 단독 테스트)
-- [ ] ③ 마을 / 월드맵 / 던전 / 퀘스트
+- [x] ③ 마을 / 월드맵 / 던전 / 퀘스트 (타이틀·필드·월드·메뉴·상점·여관·엔딩·게임오버) — 통합 플레이 검증 진행 중
 - [ ] ④ UI 다듬기 · 밸런스 · Artifact 게시
 
 ## 메모

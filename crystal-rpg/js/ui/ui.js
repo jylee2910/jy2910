@@ -42,12 +42,13 @@ export class ListMenu {
     this.items = items;
     this.el.innerHTML = '';
     this.nodes = items.map((it, i) => {
-      const n = el('div', 'mi' + (it.disabled ? ' dis' : '') + (it.cls ? ' ' + it.cls : ''));
+      const n = el('div', 'mi' + (it.disabled ? ' dis' : '') + (it.header ? ' hdr' : '') + (it.cls ? ' ' + it.cls : ''));
       n.innerHTML = (it.icon ? `<img class="ic" src="${it.iconURL || iconURL(it.icon)}" alt="">` : '') +
         `<span class="lb">${it.label}</span>` + (it.right !== undefined ? `<span class="rt">${it.right}</span>` : '') +
         (it.sub ? `<div class="sub">${it.sub}</div>` : '');
+      if (it.header) { this.el.appendChild(n); return n; }
       n.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && this.active) this.focus(i, false); });
-      n.addEventListener('click', e => { e.stopPropagation(); if (!this.active) return; this.focus(i, false); this.select(); });
+      n.addEventListener('click', e => { e.stopPropagation(); if (!this.active) return; if (i !== this.index && it.tapFocus) { this.focus(i); return; } this.focus(i, false); this.select(); });
       this.el.appendChild(n);
       return n;
     });
@@ -55,10 +56,13 @@ export class ListMenu {
     this.index = Math.min(this.index, Math.max(0, items.length - 1));
     this.focus(this.index, false, true);
   }
-  focus(i, sound = true, force = false) {
-    if (!this.items.length) { this.cursor.remove(); return; }
+  focus(i, sound = true, force = false, dir = 1) {
+    if (!this.items.length || this.items.every(it => it.header)) { this.cursor.remove(); return; }
+    const len = this.items.length;
+    i = (i + len) % len;
+    for (let g = 0; g < len && this.items[i].header; g++) i = (i + dir + len) % len;
     if (i === this.index && !force && this.cursor.parentNode) return;
-    this.index = (i + this.items.length) % this.items.length;
+    this.index = i;
     this.nodes.forEach((n, k) => n.classList.toggle('on', k === this.index));
     const n = this.nodes[this.index];
     n.prepend(this.cursor);
@@ -76,8 +80,8 @@ export class ListMenu {
   onKey(k) {
     if (!this.active) return false;
     const cols = this.opt.columns || 1;
-    if (k === 'up') this.focus(this.index - cols);
-    else if (k === 'down') this.focus(this.index + cols);
+    if (k === 'up') this.focus(this.index - cols, true, false, -1);
+    else if (k === 'down') this.focus(this.index + cols, true, false, 1);
     else if (k === 'left') { if (cols > 1) this.focus(this.index - 1); else if (this.opt.onLR) this.opt.onLR(-1); else return this.opt.modal !== false; }
     else if (k === 'right') { if (cols > 1) this.focus(this.index + 1); else if (this.opt.onLR) this.opt.onLR(1); else return this.opt.modal !== false; }
     else if (k === 'ok') this.select();

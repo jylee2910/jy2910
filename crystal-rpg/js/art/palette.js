@@ -46,7 +46,7 @@ export const PALETTE = {
   roofRed: '#b44c3c', roofRedS: '#843028', roofBlue: '#3c5c9c', roofBlueS: '#283e70',
   plaster: '#f0e4c8', plasterS: '#c8b894',
   moss: '#5a8a4a', mossS: '#3c6634',
-  caveRock: '#5c5680', caveRockS: '#3c3860', caveRockL: '#8278aa',
+  caveRock: '#645c78', caveRockS: '#48405c', caveRockL: '#8a80a0',
   flowerPink: '#ff9ac0', flowerYellow: '#ffe070', flowerWhite: '#fffaf0', flowerBlue: '#8ab4ff',
   sand: '#e8d49a', sandS: '#c4ac72',
 

@@ -21,7 +21,35 @@ export const app = {
   },
 };
 
-window.__app = app; // 디버그용
+Object.assign(app, {
+  async toTitle() {
+    const { TitleScene } = await import('./scenes/title.js');
+    this.setScene(new TitleScene(this));
+  },
+  async startGame(isNew) {
+    const { FieldScene } = await import('./scenes/field.js');
+    const { WorldScene } = await import('./scenes/world.js');
+    const loc = G.s.loc;
+    if (loc.scene === 'world') await this.setScene(new WorldScene(this, loc.node));
+    else await this.setScene(new FieldScene(this, loc.map, { x: loc.x, y: loc.y, dir: loc.dir }));
+    if (isNew) {
+      const { say } = await import('./ui/ui.js');
+      this.scene.busy = true;
+      await say(null, ['— 수정의 가호를 받는 작은 마을, 엘름.', '열흘 전, 광장의 수호 수정이 갑자기 빛을 잃었다.', '그날 이후 숲의 짐승들은 사나워지고, 마을 사람들의 얼굴에도 그늘이 졌다…']);
+      await say('세라', '레온, 촌장님이 부르셨어. 광장 왼쪽의 촌장님 댁으로 가 보자!', { face: 'sera' });
+      this.scene.busy = false;
+    }
+  },
+  async gameOver() {
+    const { GameOverScene } = await import('./scenes/title.js');
+    this.setScene(new GameOverScene(this));
+  },
+  async ending() {
+    const { TitleScene } = await import('./scenes/title.js');
+    this.setScene(new TitleScene(this, 'ending'), { fadeMs: 1200 });
+  },
+});
+window.__app = app; window.__G = G; // 디버그용
 
 async function boot() {
   input.init();
@@ -51,7 +79,6 @@ async function boot() {
     run();
     return;
   }
-  const { TitleScene } = await import('./scenes/title.js');
-  app.setScene(new TitleScene(app));
+  app.toTitle();
 }
 boot();

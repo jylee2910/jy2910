@@ -20,7 +20,7 @@ export const TILES = {
   '~': { top: 'water', side: 'stoneWall', h: -0.35, walk: false, water: true },
   'b': { top: 'planks', side: 'planks', h: 0, walk: true, bridge: true },
   'r': { top: 'caveFloor', side: 'caveWall', h: 0, walk: true },
-  'R': { top: 'caveFloor', side: 'caveWall', h: 2.0, walk: false },
+  'R': { top: 'caveTop', side: 'caveWall', h: 0.9, walk: false },
   'C': { top: 'caveFloor', side: 'caveWall', h: 0, walk: false, crystal: true },
   'o': { top: 'grass', side: 'grassSide', h: 0, walk: false, rock: true },
   'x': { top: 'caveFloor', side: 'caveWall', h: 0, walk: false, rock: true },
@@ -31,10 +31,23 @@ export const THEMES = {
   town: { sky: ['#6fb6ff', '#ffe9c8'], fog: ['#d8e8f0', 22, 55], hemi: ['#cfe6ff', '#6a8a50', 1.1], sun: ['#fff0d0', 2.6], sunDir: [-7, 14, 8], motes: 'pollen', exposure: 1.05, ground: 'grass' },
   field: { sky: ['#5aa8ff', '#fff4d8'], fog: ['#dcecf4', 20, 50], hemi: ['#cfe6ff', '#6a8a50', 1.1], sun: ['#fff4e0', 2.6], sunDir: [-8, 14, 6], motes: 'pollen', exposure: 1.05, ground: 'grass' },
   forest: { sky: ['#2e5a4a', '#a8d0a0'], fog: ['#58806a', 12, 34], hemi: ['#a8d8b0', '#2a4a30', 0.8], sun: ['#ffe8b0', 1.7], sunDir: [-5, 14, 4], motes: 'firefly', exposure: 1.0, ground: 'leavesDark' },
-  cave: { sky: ['#0a0a1e', '#28305a'], fog: ['#141a38', 12, 34], hemi: ['#8aa0f0', '#2a2050', 1.3], sun: ['#b0c8ff', 1.5], sunDir: [-4, 14, 6], motes: 'crystal', exposure: 1.15, ground: 'caveRock' },
+  cave: { sky: ['#0a0a1e', '#28305a'], fog: ['#141a38', 14, 36], hemi: ['#c8c4e8', '#302840', 1.15], sun: ['#d8dcff', 1.35], sunDir: [-4, 14, 6], motes: 'crystal', exposure: 1.15, ground: 'caveRock' },
   boss: { sky: ['#12061e', '#4a1a4a'], fog: ['#200a2a', 14, 36], hemi: ['#c090f0', '#301030', 1.2], sun: ['#e0b0ff', 1.6], sunDir: [-4, 14, 6], motes: 'ember', exposure: 1.15, ground: 'caveRock' },
   world: { sky: ['#4aa0ff', '#fff0d0'], fog: ['#cfe4f4', 26, 70], hemi: ['#cfe6ff', '#6a8a50', 1.15], sun: ['#fff0d0', 2.4], sunDir: [-8, 16, 8], motes: 'pollen', exposure: 1.05, ground: 'grass' },
 };
+
+// 가림 처리: 플레이어 앞을 가리는 나무/벽/집을 화면 공간 원형으로 디더링 투과
+export const OCCLUSION = { uOccPos: { value: new THREE.Vector2() }, uOccDepth: { value: 0 }, uOccR: { value: 0 } };
+function addOcclusion(mat) {
+  mat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, OCCLUSION);
+    sh.fragmentShader = 'uniform vec2 uOccPos; uniform float uOccDepth; uniform float uOccR;\n' + sh.fragmentShader.replace('void main() {', `void main() {
+      if (uOccR > 0.0) { vec2 od = gl_FragCoord.xy - uOccPos; float dd = dot(od, od);
+        if (gl_FragCoord.z < uOccDepth && dd < uOccR * uOccR) { float b = mod(floor(gl_FragCoord.x) + floor(gl_FragCoord.y), 2.0); if (b < 1.0 || dd < uOccR * uOccR * 0.45) discard; } }`);
+  };
+  mat.customProgramCacheKey = () => 'occl';
+  return mat;
+}
 
 const matCache = new Map();
 function texMat(name, variant = 0, opts = {}) {
@@ -45,6 +58,7 @@ function texMat(name, variant = 0, opts = {}) {
   tex.colorSpace = THREE.SRGBColorSpace;
   if (opts.repeat) { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(opts.repeat[0], opts.repeat[1]); }
   const m = new THREE.MeshLambertMaterial({ map: tex, ...(opts.mat || {}) });
+  if (opts.occl) addOcclusion(m);
   matCache.set(key, m);
   return m;
 }
@@ -155,7 +169,8 @@ export function buildDiorama(map) {
     const geo = new THREE.BoxGeometry(1, height, 1);
     geo.translate(0, height / 2 - base, 0);
     // 옆면 UV를 높이에 맞게
-    const side = texMat(t.side, variant), top = texMat(t.water ? 'stoneFloor' : t.top, variant);
+    const oc = t.h > 0.5 ? { occl: true } : {};
+    const side = texMat(t.side, variant, oc), top = texMat(t.water ? 'stoneFloor' : t.top, variant, oc);
     const mats = [side, side, top, side, side, side];
     const mesh = new THREE.InstancedMesh(geo, mats, list.length);
     list.forEach(([x, y], i) => { _m.makeTranslation(x + ox, 0, y + oz); mesh.setMatrixAt(i, _m); });
@@ -178,7 +193,7 @@ export function buildDiorama(map) {
   // 3) 나무 (줄기 + 잎 덩어리)
   if (trees.length) {
     const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.0, 6); trunkGeo.translate(0, 0.5, 0);
-    const trunk = new THREE.InstancedMesh(trunkGeo, texMat('bark'), trees.length);
+    const trunk = new THREE.InstancedMesh(trunkGeo, texMat('bark', 0, { occl: true }), trees.length);
     const blobGeo = new THREE.IcosahedronGeometry(0.55, 0);
     const byLeaf = {};
     trees.forEach(([x, y, leaf], i) => {
@@ -191,7 +206,7 @@ export function buildDiorama(map) {
     trunk.castShadow = true; trunk.receiveShadow = true;
     group.add(trunk);
     for (const [leaf, list] of Object.entries(byLeaf)) {
-      const blobs = new THREE.InstancedMesh(blobGeo, texMat(leaf, 0, { mat: { flatShading: true } }), list.length * 3);
+      const blobs = new THREE.InstancedMesh(blobGeo, texMat(leaf, 0, { mat: { flatShading: true }, occl: true }), list.length * 3);
       let k = 0;
       for (const [x, y, r] of list) {
         const h0 = 0.9 + r * 0.4;
@@ -312,7 +327,7 @@ function prismGeometry(w, h, d) {
   return geo;
 }
 
-function repeatMat(name, rx, ry, extra) { return texMat(name, 0, { repeat: [rx, ry], mat: extra }); }
+function repeatMat(name, rx, ry, extra) { return texMat(name, 0, { repeat: [rx, ry], mat: extra, occl: true }); }
 
 export function makeHouse({ w = 3, d = 3, roof = 'roofRed', wallH = 1.6, sign = null }) {
   const g = new THREE.Group();
@@ -326,7 +341,7 @@ export function makeHouse({ w = 3, d = 3, roof = 'roofRed', wallH = 1.6, sign = 
   roofM.position.y = wallH; roofM.rotation.y = Math.PI / 2; roofM.castShadow = true; roofM.receiveShadow = true;
   g.add(roofM);
   // 굴뚝
-  const ch = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.9, 0.3), texMat('stoneWall'));
+  const ch = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.9, 0.3), texMat('stoneWall', 0, { occl: true }));
   ch.position.set(w * 0.25, wallH + 0.8, -d * 0.15); ch.castShadow = true; g.add(ch);
   // 문 + 창 (앞면 = +z)
   const door = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.95), texMat('planks', 1));
