@@ -8,7 +8,7 @@ import { FX } from '../gfx/fx.js';
 import { charSheet, monsterSheet, iconURL } from '../art/assets.js';
 import { Clock, ease } from '../core/clock.js';
 import { BattleUI } from '../ui/battleui.js';
-import { banner, win, el, ListMenu, esc } from '../ui/ui.js';
+import { banner, win, el, ListMenu, esc, say } from '../ui/ui.js';
 import { sfx, playBGM } from '../core/audio.js';
 import { G, addItem, recordKill } from '../core/state.js';
 import { ABILITIES } from '../data/abilities.js';
@@ -165,6 +165,10 @@ export class BattleScene {
     banner(this.boss ? `${esc(b.enemies[0].name)}` : '몬스터가 나타났다!', this.boss ? 'boss long' : '');
     if (this.boss) { this.stage.addShake(0.2, 0.8); sfx('phase'); }
     await this.wait(this.boss ? 1.4 : 0.6);
+    if (!this.game.flags.battleHint) {
+      this.game.flags.battleHint = true;
+      await say(null, ['적 아래의 방패 숫자는 「실드」다. 약점 속성으로 공격할 때마다 1씩 줄어든다.', '실드가 0이 되면 BREAK! 적은 다음 차례를 쉬고, 받는 피해가 크게 늘어난다.', '「?」는 아직 모르는 약점이다. 여러 속성으로 공격하거나 「간파」로 밝혀내자.']);
+    }
 
     while (!b.over) {
       const { unit: u, events, skip, auto } = b.next();

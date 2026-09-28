@@ -98,6 +98,11 @@ export function applyTheme(scene, themeName, size = 20) {
   Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 60 });
   sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
   scene.add(sun); scene.add(sun.target);
+  // 디오라마 받침: 맵 밖으로 보이는 넓은 바닥
+  const baseCol = { grass: 0x3c6a34, leavesDark: 0x24402a, caveRock: 0x1a1428 }[th.ground] ?? 0x303040;
+  const base = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshLambertMaterial({ color: baseCol }));
+  base.rotation.x = -Math.PI / 2; base.position.y = -0.82; base.receiveShadow = true;
+  scene.add(base);
   const motes = makeMotes(th.motes, size);
   scene.add(motes.points);
   return { hemi, sun, motes, theme: th };

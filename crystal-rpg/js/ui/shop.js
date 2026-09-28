@@ -63,17 +63,18 @@ export function openShop(done) {
     });
     list.appendChild(el('div', 'wtitle', tab === 0 ? '구매 <small>◀ ▶ 수량</small>' : '판매 <small>◀ ▶ 수량</small>'));
     if (!items.length) list.appendChild(el('div', 'empty', '팔 수 있는 것이 없다'));
+    let curId = null;
     const showQty = () => {
-      const id = menu.items[menu.index]?.data; if (!id) return;
+      const id = curId; if (!id) return;
       detail.innerHTML = describe(id) + `<div class="qty">수량 <button class="qb">◀</button> <b class="num">${qty}</b> <button class="qb">▶</button> = <span class="num">${qty * price(id)} G</span></div>`;
       const [minus, plus] = detail.querySelectorAll('.qb');
       minus.onclick = e => { e.stopPropagation(); changeQty(-1); }; plus.onclick = e => { e.stopPropagation(); changeQty(1); };
     };
     const maxQty = id => tab === 0 ? Math.max(1, Math.min(99, Math.floor(G.s.gold / price(id)))) : (G.s.inv[id] || 0);
-    const changeQty = d => { const id = menu.items[menu.index]?.data; if (!id) return; qty = Math.max(1, Math.min(maxQty(id), qty + d)); sfx('cursor'); showQty(); };
+    const changeQty = d => { const id = curId; if (!id) return; qty = Math.max(1, Math.min(maxQty(id), qty + d)); sfx('cursor'); showQty(); };
     menu = new ListMenu(list, items, {
       index: focus,
-      onFocus: () => { qty = 1; showQty(); },
+      onFocus: it => { curId = it.data; qty = 1; showQty(); },
       onLR: changeQty,
       onSelect: it => {
         const id = it.data, cost = price(id) * qty;
@@ -87,7 +88,7 @@ export function openShop(done) {
           toast(`${itemInfo(id).name} ×${qty} 판매 (+${cost} G)`);
         }
         gold.innerHTML = goldHTML();
-        render(menu.index);
+        render(Math.min(menu.index, (tab === 1 ? Object.keys(G.s.inv).length : 99) - 1));
       },
       onCancel: () => { menu.destroy(); menu = null; list.innerHTML = ''; detail.innerHTML = ''; tabs.setActive(true); },
     });

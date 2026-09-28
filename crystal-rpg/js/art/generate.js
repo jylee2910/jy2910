@@ -257,7 +257,7 @@ export function makeWeaponIcon(type, tint) {
   const rows = normalizeGrid(shape.grid);
   const len = rows.length;
   const size = 16;
-  const scale = Math.min(1, 20 / len);
+  const scale = Math.min(1.5, 19 / len);
   const buf = new PixBuf(size, size);
   const src = new PixBuf(rows[0].length, len);
   drawGrid(src, shape.grid, wc, 0, 0);
