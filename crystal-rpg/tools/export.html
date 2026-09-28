@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>에셋 내보내기</title>
+<style>
+  body { background: #1b1f33; color: #e8ecff; font-family: sans-serif; margin: 16px; }
+  h2 { font-size: 15px; margin: 18px 0 6px; color: #9fb4ff; }
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  figure { margin: 0; text-align: center; font-size: 11px; }
+  canvas { image-rendering: pixelated; background: #4a5a8a; display: block; }
+  a { color: #ffd070; }
+</style>
+</head>
+<body>
+<h1 style="font-size:18px">생성 에셋 미리보기 / PNG 내보내기</h1>
+<p style="font-size:12px">각 이미지를 클릭하면 PNG로 저장됩니다. 저장한 시트를 수정해 <code>js/art/overrides.js</code>에 등록하면 게임이 생성 대신 그 파일을 사용합니다.</p>
+<div id="out"></div>
+<script type="module">
+import { makeCharSheet, makeMonsterSheet, makeIcon, makeTexture, makeWeaponIcon, makeFaceIcon } from '../js/art/generate.js';
+import { CHAR_DESIGNS, MONSTER_DESIGNS, WEAPON_SHAPES } from '../js/art/sprites.data.js';
+import { ICONS } from '../js/art/icons.data.js';
+import { TILE_RECIPES } from '../js/art/tiles.data.js';
+const out = document.getElementById('out');
+const scale = +(new URLSearchParams(location.search).get('scale') || 3);
+function section(title) { const h = document.createElement('h2'); h.textContent = title; out.appendChild(h); const g = document.createElement('div'); g.className = 'grid'; out.appendChild(g); return g; }
+function show(g, buf, label, s = scale) {
+  const c = buf.toCanvas();
+  c.style.width = c.width * s + 'px'; c.style.height = c.height * s + 'px';
+  const f = document.createElement('figure'); f.appendChild(c);
+  const cap = document.createElement('figcaption'); cap.textContent = label; f.appendChild(cap);
+  c.onclick = () => { const a = document.createElement('a'); a.download = label + '.png'; a.href = c.toDataURL(); a.click(); };
+  g.appendChild(f);
+}
+const weapons = { leon: 'sword', sera: 'staff', kyle: 'sword', rhea: 'spear', bran: 'sword' };
+let g = section('캐릭터 시트 (행: idle/walk/attack/cast/hurt/guard/victory/ko)');
+const only = new URLSearchParams(location.search).get('only');
+for (const id of Object.keys(CHAR_DESIGNS)) {
+  if (only && only !== 'chars') break;
+  show(g, makeCharSheet(id, weapons[id] ? { type: weapons[id] } : null).buf, id);
+}
+g = section('몬스터 시트 (행: idle/attack/cast/hurt)');
+for (const id of Object.keys(MONSTER_DESIGNS)) if (!only || only === 'mon') show(g, makeMonsterSheet(id).buf, id, 2);
+g = section('아이콘');
+for (const id of Object.keys(ICONS)) show(g, makeIcon(id), id, 4);
+for (const t of Object.keys(WEAPON_SHAPES)) show(g, makeWeaponIcon(t), 'w_' + t, 4);
+for (const id of Object.keys(CHAR_DESIGNS)) show(g, makeFaceIcon(id), 'face_' + id, 4);
+g = section('타일 텍스처');
+for (const id of Object.keys(TILE_RECIPES)) show(g, makeTexture(id, 0), id, 4);
+</script>
+</body>
+</html>
