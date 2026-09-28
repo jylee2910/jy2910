@@ -1,42 +1,57 @@
-import * as THREE from 'three';
+// 앱 진입점: 스테이지/루프/씬 전환/입력/오디오 초기화
 import { Stage } from './gfx/stage.js';
-import { buildDiorama, applyTheme, arenaMap } from './gfx/diorama.js';
-import { Billboard } from './gfx/billboard.js';
-import { charSheet, monsterSheet } from './art/assets.js';
+import { input } from './core/input.js';
+import { initAudio } from './core/audio.js';
+import { preloadOverrides } from './art/assets.js';
+import { G, newGameState, recruit } from './core/state.js';
+import { newChar } from './sys/party.js';
+import { fade } from './ui/ui.js';
+import { BattleScene } from './scenes/battle.js';
 
-const theme = new URLSearchParams(location.search).get('theme') || 'field';
-const stage = new Stage(document.getElementById('view'));
-const scene = new THREE.Scene();
-stage.setWorld(scene);
-applyTheme(scene, theme, 18);
-const d = buildDiorama(arenaMap(theme));
-scene.add(d.group);
-const sprites = [];
-const party = [['leon', 'sword'], ['sera', 'staff'], ['bran', 'sword'], ['rhea', 'spear'], ['kyle', 'rod']];
-party.forEach(([id, w], i) => {
-  const b = new Billboard(charSheet(id, { type: w }));
-  b.group.position.set(2.2 + i * 0.5, 0, -1.6 + i * 0.9);
-  b.play(['idle', 'attack', 'cast', 'idle', 'victory'][i]);
-  scene.add(b.group); sprites.push(b);
-});
-['slime', 'mushroom', 'wolf'].forEach((id, i) => {
-  const b = new Billboard(monsterSheet(id));
-  
-  b.group.position.set(-2.4 - (i % 2) * 0.6, 0, -1.4 + i * 1.3);
-  scene.add(b.group); sprites.push(b);
-});
-const boss = new Billboard(monsterSheet(theme === 'boss' ? 'dragon' : 'treant'), { scale: 1.3 });
-boss.group.position.set(-4.5, 0, -1.2); scene.add(boss.group); sprites.push(boss);
-stage.setFov(30);
-stage.camera.position.set(0.8, 5.2, 9.5);
-stage.camera.lookAt(-0.2, 0.7, 0);
-stage.focus = 0.42; stage.applyTilt();
-let last = performance.now(), t = 0;
-function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
-  for (const s of sprites) s.update(dt, stage.camera);
-  d.update(t);
-  stage.render(dt);
+export const app = {
+  stage: null, scene: null, battleSpeed: 1, playTimer: 0,
+  async setScene(sc, { fadeMs = 300 } = {}) {
+    if (this.scene) { await fade(true, fadeMs); this.scene.exit(); }
+    input.stack.length = 0;
+    input.sceneHandler = null;
+    document.getElementById('ui').innerHTML = '';
+    this.scene = sc;
+    await sc.enter();
+    await fade(false, fadeMs);
+  },
+};
+
+window.__app = app; // 디버그용
+
+async function boot() {
+  input.init();
+  const unlock = () => initAudio();
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+  await preloadOverrides();
+  app.stage = new Stage(document.getElementById('view'));
+  let last = performance.now();
+  const loop = now => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (app.scene) app.scene.update(dt);
+    if (G.s) G.s.playTime += dt;
+    app.stage.render(dt);
+    requestAnimationFrame(loop);
+  };
   requestAnimationFrame(loop);
+
+  const q = new URLSearchParams(location.search);
+  if (q.get('test') === 'battle') {
+    G.s = newGameState();
+    const lv = +(q.get('lv') || 5);
+    G.s.party = (q.get('party') || 'leon,sera,bran').split(',');
+    G.s.roster = {};
+    for (const id of G.s.party) G.s.roster[id] = newChar(id, lv);
+    const run = () => app.setScene(new BattleScene(app, { enemies: (q.get('foes') || 'slime,mushroom,wolf').split(','), theme: q.get('theme') || 'field', onEnd: run }));
+    run();
+    return;
+  }
+  const { TitleScene } = await import('./scenes/title.js');
+  app.setScene(new TitleScene(app));
 }
-requestAnimationFrame(loop);
+boot();

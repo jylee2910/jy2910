@@ -23,12 +23,30 @@ js/art/overrides.js   외부 스프라이트 시트 등록 지점
 js/gfx/stage.js       렌더러, 블룸, 틸트시프트, 그레이딩/비네트, 흔들림, 플래시
 js/gfx/billboard.js   스프라이트 빌보드 (애니메이션, hit 프레임 콜백, 피격 플래시, 그림자)
 js/gfx/diorama.js     타일맵 → 디오라마 (인스턴싱), 테마 조명, 부유 입자, 집/가로등/크리스탈, 전투 아레나
+js/gfx/fx.js          파티클(픽셀/글로우), 베기 궤적, 원소 마법, 마법진, 순간 조명
+js/core/clock.js      씬 시간(히트스톱/슬로모션), wait/tween 프라미스
+js/core/input.js      키 매핑 + UI 핸들러 스택 (최상단 모달이 키 소비)
+js/core/audio.js      WebAudio 효과음(sfx 이름) + BGM 시퀀서(SONGS)
+js/core/state.js      G.s 게임 상태, 아이템/플래그/처치 기록, localStorage 저장(try/catch)
+js/data/*.js          elements / abilities(+SYNERGIES) / items / characters / enemies (데이터만 추가하면 확장)
+js/sys/party.js       스탯·장비·어빌리티(무기 부여/습득/등록/코스트/공명)·AP·EXP
+js/sys/battle.js      전투 모델(CT 턴, 데미지, 약점/실드/BREAK, 반격/수호/도약/마법검, 보스 페이즈) → 이벤트 배열
+js/scenes/battle.js   전투 연출(돌진/시전/히트스톱/흔들림/넉백/팝업/브레이크/막타 슬로모션/페이즈 컷신/결과)
+js/ui/ui.js           창/ListMenu(손가락 커서)/대화창/선택지/배너/토스트/페이드
+js/ui/battleui.js     턴 순서, 파티 상태, 커맨드·어빌리티·아이템 메뉴, 대상 선택(키/탭), 적 약점 태그
 tools/export.html     생성 에셋 미리보기/PNG 저장
 ```
 
+## 어빌리티 시스템 요약
+- 활성 어빌리티 = 고유(innate) ∪ 장착 무기 어빌리티(무기 부여, 코스트 없음) ∪ 등록(set, 코스트 ≤ 3+Lv/2)
+- 전투 AP → 장착 무기의 미습득 어빌리티 전부에 적립 → 다 차면 영구 습득(learned) + 여유 있으면 자동 등록
+- 패시브 mods 종류와 효과 스키마는 data/abilities.js 상단 주석 참고. 공명(SYNERGIES)은 needs 전부 활성 시 mods 추가
+- 적: weak/resist/absorb, shield. 약점 적중마다 실드 -1(+mods) → 0이면 BREAK(다음 턴 스킵, 피해 ×1.6)
+- 밸런스 시뮬레이터: 스크래치패드 sim.mjs (node로 Battle 모델만 돌림)
+
 ## 단계
 - [x] ① 에셋 생성 구조 + 캐릭터 5종/NPC 6종/몬스터 12종/아이콘/타일, 스테이지+빌보드+디오라마 (스크린샷 확인 완료)
-- [ ] ② 전투 + 어빌리티 시스템
+- [x] ② 전투 + 어빌리티 시스템 (?test=battle&foes=slime,wolf&theme=field&lv=5&party=leon,sera,bran 으로 단독 테스트)
 - [ ] ③ 마을 / 월드맵 / 던전 / 퀘스트
 - [ ] ④ UI 다듬기 · 밸런스 · Artifact 게시
 

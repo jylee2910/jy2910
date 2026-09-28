@@ -386,9 +386,11 @@ export function arenaMap(theme) {
   for (let y = 0; y < H; y++) {
     let r = '';
     for (let x = 0; x < W; x++) {
-      const edge = y < 2 || x < 1 || x > W - 2 || y > H - 2;
+      const edge = y < 2 || x < 1 || x > W - 2;
+      const front = y > H - 3;
       const n = hash(x + 3, y + 7);
-      if (theme === 'field' || theme === 'town') r += edge ? (n < 0.55 ? 'T' : n < 0.7 ? 'o' : ',') : n < 0.15 ? ',' : n < 0.25 ? ':' : '.';
+      if (front && theme !== 'cave' && theme !== 'boss') r += n < 0.3 ? ',' : '.';
+      else if (theme === 'field' || theme === 'town') r += edge ? (n < 0.55 ? 'T' : n < 0.7 ? 'o' : ',') : n < 0.15 ? ',' : n < 0.25 ? ':' : '.';
       else if (theme === 'forest') r += edge ? (n < 0.75 ? 't' : 'o') : n < 0.2 ? ':' : n < 0.3 ? ',' : '.';
       else if (theme === 'cave') r += y < 2 ? 'R' : edge ? (n < 0.35 ? 'C' : n < 0.6 ? 'x' : 'R') : 'r';
       else r += y < 2 ? 'R' : edge ? (n < 0.4 ? 'C' : 'R') : (Math.abs(x - W / 2) < 3 && Math.abs(y - H / 2) < 3 ? 'A' : '=');
