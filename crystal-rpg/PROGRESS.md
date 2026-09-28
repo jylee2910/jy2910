@@ -58,8 +58,15 @@ tools/export.html     생성 에셋 미리보기/PNG 저장
 ## 단계
 - [x] ① 에셋 생성 구조 + 캐릭터 5종/NPC 6종/몬스터 12종/아이콘/타일, 스테이지+빌보드+디오라마 (스크린샷 확인 완료)
 - [x] ② 전투 + 어빌리티 시스템 (?test=battle&foes=slime,wolf&theme=field&lv=5&party=leon,sera,bran 으로 단독 테스트)
-- [x] ③ 마을 / 월드맵 / 던전 / 퀘스트 (타이틀·필드·월드·메뉴·상점·여관·엔딩·게임오버) — 통합 플레이 검증 진행 중
-- [ ] ④ UI 다듬기 · 밸런스 · Artifact 게시
+- [x] ③ 마을 / 월드맵 / 던전 / 퀘스트 (타이틀·필드·월드·메뉴·상점·여관·엔딩·게임오버)
+- [x] ④ UI 다듬기 · 밸런스 · Artifact 게시 — https://claude.ai/artifact/SX8PqG21SWgtqLGh869bvp
+  - 게시 방법: index.html에서 doctype/html/head/body 태그를 뺀 페이지 + js/·css/ 파일을 files로 함께 게시 (같은 URL로 재게시)
+  - 검증: 스크립트로 새 게임→대화→상자→인카운터→월드 이동 전투→상점→숲 보스→수정룡 페이즈→엔딩까지 오류 없이 통과
+
+## 다음에 할 만한 것 (선택)
+- 실기기(휴대폰) 성능 확인: 느리면 Stage의 pixelRatio/그림자 맵 크기(2048)/블룸 해상도 하향
+- 밸런스는 시뮬레이터(단순 AI) 기준: 파수꾼 Lv6 승률≈98%, 수정룡 Lv13 승률≈62%. 실제 플레이 후 ENEMY_DMG·보스 HP 조정
+- 콘텐츠 추가는 data/*.js만 수정: 무기(items.js)→어빌리티(abilities.js)→공명(SYNERGIES)→적(enemies.js)→조우 테이블(maps.js)
 
 ## 메모
 - 캐릭터 시트: 32x32 프레임, 행 순서 idle/walk/attack/cast/hurt/guard/victory/ko. 무기 종류별로 공격 모션(slash/thrust)이 달라 시트는 (캐릭터, 무기타입, 틴트)별 캐시.
