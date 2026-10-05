@@ -54,6 +54,7 @@ const SFX = {
   buzz: t => tone('sawtooth', 110, t, 0.12, 0.06, sfxBus, { lp: 900 }),
   text: t => tone('square', 900 + Math.random() * 80, t, 0.025, 0.018),
   step: t => noise(t, 0.05, 0.05, { f: 500, q: 2 }),
+  cutin: t => { noise(t, 0.35, 0.22, { type: 'bandpass', f: 800, to: 5000 }); tone('square', 220, t, 0.18, 0.06, sfxBus, { to: 880 }); tone('triangle', 660, t + 0.08, 0.25, 0.08, sfxBus, { to: 1320 }); },
   slash: t => { noise(t, 0.16, 0.3, { type: 'highpass', f: 1500, to: 6000 }); tone('sawtooth', 600, t, 0.08, 0.05, sfxBus, { to: 200 }); },
   hit: t => { tone('sine', 160, t, 0.16, 0.5, sfxBus, { to: 50 }); noise(t, 0.08, 0.35, { f: 1200, q: 0.8 }); },
   heavy: t => { tone('sine', 120, t, 0.3, 0.6, sfxBus, { to: 35 }); noise(t, 0.2, 0.4, { type: 'lowpass', f: 2500, to: 300 }); },

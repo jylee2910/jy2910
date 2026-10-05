@@ -226,6 +226,23 @@ export const HUMAN_ANIMS = {
     { t: 0.6, e: 'out', p: { armL: [-88, 0, 5], foreL: [-4, 0, 0], weapon: [-90, 0, 0], armR: [-30, 0, -30], foreR: [-20, 0, 0], chest: [15, -30, 0], head: [-8, 20, 0], thighL: [-70, 0, 6], shinL: [30, 0, 0], thighR: [40, 0, -6], shinR: [5, 0, 0] }, r: [0, -0.12, 0.45] },
     { t: 0.9, p: { ...W_READY, chest: [2, -8, 0], thighL: [-10, 0, 6], thighR: [8, 0, -6], shinL: [12, 0, 0], shinR: [8, 0, 0] } },
   ] },
+  // 기술 전용: 도약 내려찍기
+  skill_heavy: { dur: 1.15, hit: 0.56, keys: [
+    { t: 0, p: { ...W_READY, chest: [2, -8, 0], thighL: [-10, 0, 6], thighR: [8, 0, -6], shinL: [12, 0, 0], shinR: [8, 0, 0] } },
+    { t: 0.22, e: 'out', p: { armL: [-40, 0, 30], foreL: [-70, 0, 0], weapon: [-70, 0, 0], armR: [-30, 0, -25], foreR: [-60, 0, 0], chest: [30, 20, 0], head: [-15, -10, 0], thighL: [-75, 0, 8], shinL: [110, 0, 0], footL: [-25, 0, 0], thighR: [-40, 0, -8], shinR: [100, 0, 0] }, r: [0, -0.2, -0.05] },
+    { t: 0.42, e: 'out', p: { armL: [-215, 0, 10], foreL: [-30, 0, 0], weapon: [-25, 0, 0], armR: [-200, 0, -15], foreR: [-30, 0, 0], chest: [-22, 0, 0], spine: [-10, 0, 0], head: [-12, 0, 0], thighL: [-50, 0, 8], shinL: [80, 0, 0], thighR: [10, 0, -8], shinR: [70, 0, 0] }, r: [0, 0.22, 0.2], smear: 0 },
+    { t: 0.56, e: 'snap', p: { armL: [-20, 0, -5], foreL: [-5, 0, 0], weapon: [-10, 0, 0], armR: [-15, 0, -5], foreR: [-10, 0, 0], chest: [42, -10, 0], spine: [12, 0, 0], head: [-20, 0, 0], thighL: [-80, 0, 8], shinL: [95, 0, 0], thighR: [20, 0, -8], shinR: [60, 0, 0] }, r: [0, -0.18, 0.5], smear: 1 },
+    { t: 0.8, e: 'out', p: { armL: [-15, 0, -8], foreL: [-5, 0, 0], weapon: [-5, 0, 0], armR: [-10, 0, -8], foreR: [-10, 0, 0], chest: [40, -10, 0], spine: [12, 0, 0], head: [-18, 0, 0], thighL: [-82, 0, 8], shinL: [96, 0, 0], thighR: [22, 0, -8], shinR: [62, 0, 0] }, r: [0, -0.2, 0.5], smear: 0 },
+    { t: 1.15, e: 'inOut', p: { ...W_READY, chest: [2, -8, 0], thighL: [-10, 0, 6], thighR: [8, 0, -6], shinL: [12, 0, 0], shinR: [8, 0, 0] }, r: [0, -0.01, 0] },
+  ] },
+  // 기술 전용: 회전 베기
+  skill_spin: { dur: 1.0, hit: 0.48, keys: [
+    { t: 0, p: { ...W_READY, chest: [2, -8, 0] } },
+    { t: 0.24, e: 'out', p: { armL: [-80, 0, 70], foreL: [-20, 0, 0], weapon: [-80, 0, 0], armR: [-20, 0, -40], foreR: [-50, 0, 0], chest: [10, 50, 0], spine: [0, 20, 0], head: [0, -40, 0], thighL: [-35, 0, 10], shinL: [50, 0, 0], thighR: [25, 0, -10], shinR: [40, 0, 0] }, r: [0, -0.12, 0], spin: 0 },
+    { t: 0.48, e: 'linear', p: { armL: [-90, 0, 85], foreL: [-5, 0, 0], weapon: [-90, 0, 0], armR: [-80, 0, -80], foreR: [-5, 0, 0], chest: [5, 0, 0], spine: [0, 0, 0], head: [0, 0, 0], thighL: [-30, 0, 15], shinL: [30, 0, 0], thighR: [20, 0, -15], shinR: [20, 0, 0] }, r: [0, 0.18, 0.3], spin: -540, smear: 1 },
+    { t: 0.62, e: 'out', p: { armL: [-30, 0, -10], foreL: [-5, 0, 0], weapon: [-10, 0, 0], armR: [20, 0, -40], foreR: [-30, 0, 0], chest: [20, -40, 0], spine: [5, -10, 0], head: [-10, 30, 0], thighL: [-60, 0, 6], shinL: [45, 0, 0], thighR: [35, 0, -6], shinR: [10, 0, 0] }, r: [0, -0.12, 0.35], spin: -720, smear: 0.5 },
+    { t: 1.0, e: 'inOut', p: { ...W_READY, chest: [2, -8, 0] }, r: [0, -0.01, 0], spin: -720 },
+  ] },
   cast: { dur: 1.0, hit: 0.55, keys: [
     { t: 0, p: { ...W_READY, chest: [2, -8, 0] } },
     { t: 0.25, e: 'out', p: { armL: [-60, 0, 30], foreL: [-60, 0, 0], weapon: [-90, 0, 0], armR: [-60, 0, -30], foreR: [-60, 0, 0], chest: [10, 0, 0], head: [10, 0, 0], thighL: [-8, 0, 8], thighR: [8, 0, -8], shinL: [15, 0, 0], shinR: [15, 0, 0] }, r: [0, -0.05, 0] },
@@ -391,6 +408,16 @@ export class RigBillboard {
     if (onEnd && a.loop) { this.onEnd = null; onEnd(); }
   }
   flash(dur = 0.12, color = 0xffffff) { this.flashT = dur; this.flashColor.set(color); }
+  // 현재 프레임 복사 (잔상용)
+  snapshot() {
+    const r = RENDERER; if (!r) return null;
+    const sp = this.sprite;
+    const tex = new THREE.FramebufferTexture(sp.w, sp.h);
+    tex.magFilter = tex.minFilter = THREE.NearestFilter;
+    const prev = r.getRenderTarget();
+    r.setRenderTarget(sp.rtB); r.copyFramebufferToTexture(tex); r.setRenderTarget(prev);
+    return tex;
+  }
   setAlpha(a) {
     this.alpha = a;
     this.mat.transparent = a < 1; this.mat.opacity = a; this.mat.alphaTest = a < 1 ? 0.01 : 0.5; this.mat.depthWrite = a >= 1; this.mat.needsUpdate = true;

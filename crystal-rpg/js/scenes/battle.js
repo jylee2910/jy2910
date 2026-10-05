@@ -4,7 +4,7 @@ import { Battle } from '../sys/battle.js';
 import { gainExp, gainAP, weaponLook } from '../sys/party.js';
 import { buildDiorama, applyTheme, arenaMap } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
-import { makeActor } from '../gfx/actors.js';
+import { makeActor, portraitURL, HAS_RIG } from '../gfx/actors.js';
 import { FX } from '../gfx/fx.js';
 import { charSheet, monsterSheet, iconURL } from '../art/assets.js';
 import { Clock, ease } from '../core/clock.js';
@@ -109,6 +109,7 @@ export class BattleScene {
   }
 
   update(realDt) {
+    if (this.slow) { this.slow.t -= realDt; this.clock.scale = this.slow.t > 0 ? this.slow.scale : 1; if (this.slow.t <= 0) this.slow = null; }
     const dt = this.clock.update(realDt * this.speed);
     for (const [u, s] of this.sprites) {
       s.update(dt * (s.speedJitter || 1), this.stage.camera);
@@ -309,9 +310,11 @@ export class BattleScene {
 
   async playAct(ev, group) {
     const u = ev.u, s = this.spr(u);
+    const isSkill = !!ev.name && !ev.item && ev.ab.id !== 'attack';
     if (ev.name) {
       const elem = ev.ab.elem && ELEMENTS[ev.ab.elem];
-      banner(`${elem ? `<img src="${iconURL(elem.icon)}"> ` : ''}${esc(ev.name)}`, u.side === 'enemy' ? 'enemy' : '');
+      if (isSkill && (u.side === 'party' || u.boss)) await this.cutIn(u, ev);
+      else banner(`${elem ? `<img src="${iconURL(elem.icon)}"> ` : ''}${esc(ev.name)}`, u.side === 'enemy' ? 'enemy' : '');
     }
     this.ui.updateUnit(u, u.hp, u.mp + 0); // MP 소비 반영은 모델 기준
     if (u.side === 'party') this.ui.updateUnit(u);
@@ -347,15 +350,34 @@ export class BattleScene {
       const dest = t0.side === u.side ? from : ts.group.position.clone().add(new THREE.Vector3(dirX * (0.95 + (ts.width * 0.25)), 0, 0.05));
       if (u.side === 'enemy') dest.lerpVectors(from, dest, 0.7);
       dest.y = from.y;
-      if (u.side === 'party') s.play('walk', { speed: 2 });
-      this.camFocus(dest.clone().lerp(ts.group.position, 0.5), 0.3, 5);
+      const anim = this.skillAnim(ev, s);
+      const elemCol = ELEM_HEX[ev.ab.elem] || 0x9fd8ff;
+      if (isSkill && u.side === 'party') {
+        // 기 모으기
+        s.flash(0.2, elemCol); this.fx.charge(from, elemCol, 18, 1.2); sfx('cast');
+        this.camFocus(from, 0.42, 6);
+        await this.wait(0.32);
+      }
+      if (u.side === 'party') s.play('walk', { speed: 2.4 });
+      if (isSkill) this.camFocus(dest.clone().lerp(ts.group.position, 0.5), 0.5, 7);
+      else this.camFocus(dest.clone().lerp(ts.group.position, 0.5), 0.3, 5);
       if (!ev.counter) sfx('step');
-      await this.clock.tween(u.side === 'party' ? 0.22 : 0.18, k => s.group.position.lerpVectors(from, dest, k), ease.inOut);
-      hitP = new Promise(r => s.play('attack', { onHit: r }));
+      let gk = 0;
+      await this.clock.tween(u.side === 'party' ? (isSkill ? 0.16 : 0.22) : 0.18, k => {
+        s.group.position.lerpVectors(from, dest, k);
+        if (u.side === 'party' && k - gk > (isSkill ? 0.18 : 0.34)) { gk = k; this.fx.ghost(s, isSkill ? elemCol : 0x7ab8ff, 0.28); }
+      }, ease.inOut);
+      if (isSkill) this.fx.dust(dest);
+      const leap = anim === 'skill_heavy';
+      hitP = new Promise(r => s.play(anim, { onHit: r }));
+      if (leap) this.clock.tween(0.56, k => { s.offset.y = Math.sin(Math.min(1, k * 1.15) * Math.PI) * 1.1; }, ease.linear);
+      if (anim === 'skill_spin') { const t1 = performance.now(); const iv = setInterval(() => { if (performance.now() - t1 > 500 / this.speed) clearInterval(iv); else this.fx.ghost(s, elemCol, 0.18); }, 45); }
       await hitP;
+      s.offset.y = 0;
+      if (isSkill) { this.fx.shock(dest, elemCol, leap ? 3 : 2.2, 0.5); if (leap) { this.stage.addShake(0.35, 0.35); this.fx.dust(ts.group.position); } }
       if (ev.ab.fx !== 'hit' && u.side === 'party') sfx('slash');
       await this.showHits(ev, group);
-      await this.wait(0.18);
+      await this.wait(isSkill ? 0.3 : 0.18);
       s.play('idle');
       await this.clock.tween(0.2, k => s.group.position.lerpVectors(dest, from, k), ease.inOut);
       s.group.position.copy(s.home);
@@ -366,12 +388,19 @@ export class BattleScene {
     } else {
       // 시전
       const elemCol = ELEM_HEX[ev.ab.elem] || (ev.ab.type === 'heal' ? 0x9dffb0 : 0x7ef0ff);
-      this.fx.magicCircle(s.group.position, elemCol, 1.1, u.boss ? 1.8 : 0.9);
+      this.fx.magicCircle(s.group.position, elemCol, 1.3, u.boss ? 1.8 : 1.1);
       sfx('cast');
       if (u.boss) this.camFocus(s.group.position, 0.25);
+      else if (u.side === 'party' && ev.anim !== 'guard') {
+        this.fx.charge(s.group.position, elemCol, 30, 1.5);
+        this.camFocus(s.group.position, 0.4, 5);
+        this.clock.tween(0.5, k => { if (Math.random() < 0.5) this.fx.aura(s.group.position, elemCol, s.height); });
+      }
       hitP = new Promise(r => s.play(ev.anim === 'guard' ? 'guard' : 'cast', { onHit: r }));
       await hitP;
       await this.wait(0.3);
+      if (u.side === 'party' && t0 && t0.side !== u.side) { const c = targets.reduce((a, t) => a.add(this.spr(t).group.position), new THREE.Vector3()).multiplyScalar(1 / targets.length); this.camFocus(c, 0.4, 6); }
+      if (u.side === 'party' && ev.ab.type !== 'mag' && t0 && t0.side === u.side) this.camHomeGo(5);
       if (ev.ab.type === 'mag' && t0 && targets.length === 1) {
         this.fx.orb(this.chest(u), this.chest(t0), elemCol, 0.28);
         await this.wait(0.26);
@@ -388,6 +417,31 @@ export class BattleScene {
     }
     // 수호 이동 복귀
     for (const [, sp] of this.sprites) if (sp.coverReturn) { const a = sp.group.position.clone(), b = sp.coverReturn; sp.coverReturn = null; this.clock.tween(0.2, k => sp.group.position.lerpVectors(a, b, k)); sp.play('idle'); }
+  }
+
+  skillAnim(ev, s) {
+    if (!s.rig || !ev.name || ev.ab.id === 'attack') return 'attack';
+    if (s.rig.attackAnim === 'attack_thrust') return 'attack';
+    const fx = ev.ab.fx;
+    if (fx === 'slash2' || ev.ab.target === 'enemies') return 'skill_spin';
+    if (['slashBig', 'shatter', 'fireSlash', 'iceSlash', 'boltSlash', 'quake'].includes(fx) || (ev.ab.power || 0) >= 1.4) return 'skill_heavy';
+    return 'attack';
+  }
+  slowmo(sec, scale = 0.25) { this.slow = { t: sec, scale }; }
+  // 기술 컷인: 대각선 띠 + 상반신 초상 + 기술명
+  async cutIn(u, ev) {
+    const col = ELEMENTS[ev.ab.elem]?.color || (ev.ab.type === 'heal' ? '#7dffa8' : u.side === 'enemy' ? '#ff5a6a' : '#8fd8ff');
+    const design = u.side === 'party' ? CHARACTERS[u.id].design : null;
+    let img = '';
+    try { if (design && HAS_RIG(design)) img = `<img class="ci-por" src="${portraitURL(design, 'cut', weaponLook(u.cs))}">`; } catch (e) { img = ''; }
+    const elem = ev.ab.elem && ELEMENTS[ev.ab.elem];
+    const c = el('div', 'cutin ' + (u.side === 'enemy' ? 'foe' : ''), `<div class="ci-band"></div><div class="ci-lines"></div>${img}<div class="ci-name">${elem ? `<img src="${iconURL(elem.icon)}">` : ''}<span>${esc(ev.name)}</span><small>${esc(u.name)}</small></div>`);
+    c.style.setProperty('--c', col);
+    c.style.setProperty('--d', (0.95 / this.speed) + 's');
+    document.getElementById('ui').appendChild(c);
+    sfx('cutin');
+    setTimeout(() => c.remove(), 1000 / this.speed);
+    await this.wait(0.55);
   }
 
   spellFx(ab, t) {
@@ -416,7 +470,7 @@ export class BattleScene {
     const pos = this.chest(t);
     if (h.miss) { this.ui.popup(pos, 'MISS', 'miss'); sfx('miss'); return; }
     if (h.heal !== undefined && !h.absorb) {
-      this.fx.heal(ts.group.position); sfx('heal');
+      this.fx.heal(ts.group.position); this.fx.shock(ts.group.position, 0x9dffb0, 1.5, 0.6); this.fx.pillar(ts.group.position, 0x2a6a3a, 0.6, 0.45, 3); sfx('heal');
       this.ui.popup(pos, h.heal, 'heal');
       this.ui.updateUnit(t, h.hpAfter);
       return;
@@ -434,7 +488,9 @@ export class BattleScene {
     if (phys) {
       const col = ELEM_HEX[mainElem] || 0xffffff;
       if (mainElem === 'pierce' || h.ab?.fx === 'thrust') this.fx.burst(pos, { n: 8, color: 0xffffff, speed: 5, life: 0.2, size: 0.1, g: 0, spread: 0.3 });
+      else if (act?.name && act.ab.id !== 'attack' && u.side === 'party') { if (act.ab.fx === 'slash2') this.fx.crossSlash(pos, col, 2.2); else this.fx.bigSlash(pos, col, -0.7, h.crit ? 2.8 : 2.3); }
       else this.fx.slash(pos, col, u.side === 'party' ? -0.7 : 0.7, h.crit ? 2 : 1.4);
+      if (h.crit) this.fx.streaks(pos, 0xffffff, 12, 2.2);
       if (ELEM_HEX[mainElem] && mainElem !== 'slash') this.fx.spell(mainElem, this.spr(t).group.position);
     }
     this.fx.hit(pos, elems, h.crit || h.weak);
@@ -455,10 +511,20 @@ export class BattleScene {
     if (h.crit) this.ui.popup(pos.clone().add(new THREE.Vector3(0, 0.45, 0)), 'CRITICAL!', 'tag crit');
     else if (h.weak) this.ui.popup(pos.clone().add(new THREE.Vector3(0, 0.45, 0)), 'WEAK', 'tag weak');
     else if (h.resist) this.ui.popup(pos.clone().add(new THREE.Vector3(0, 0.45, 0)), 'RESIST', 'tag resist');
+    this.hitCount = (this.hitCount || 0) + 1;
     if (h.drain) { this.ui.popup(this.chest(u), h.drain, 'heal'); this.ui.updateUnit(u, h.uHpAfter); }
     if (t.side === 'party') this.ui.updateUnit(t, h.hpAfter); else this.ui.updateTag(t, h.hpAfter);
     if (h.broke) await this.playBreak(t);
-    if (h.kill) t._dying = true;
+    if (h.kill) {
+      t._dying = true;
+      const last = t.side === 'enemy' && !this.battle.enemies.some(e => e.alive && e !== t);
+      if (last || t.boss) {
+        // 마무리 일격: 슬로모션 + 줌 + 섬광
+        this.slowmo(0.7, 0.18); this.stage.flash(0xffffff, 0.5);
+        this.fx.ringV(pos, 0xffffff, 2.6, 0.5); this.fx.streaks(pos, 0xfff0c0, 20, 3, 0.5);
+        this.camFocus(ts.group.position, 0.55, 9);
+      }
+    }
   }
 
   async playBreak(t) {

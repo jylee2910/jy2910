@@ -211,10 +211,10 @@ const HERO_DEFS = {
       B.armL.add(at(ball(0.03, 'gold'), 0.08, 0.04, 0));
       scarf(rig, 'red', 'redS');
     }] },
-  sera: { face: 'heroine', hair: 'long', colors: { hair: 'hairGold', hairS: 'hairGoldS', eye: '#2aa0a0', chest: 'creamL', sleeve: 'creamL', forearm: 'creamL', glove: 'skin', pants: 'creamL', boots: '#c8b8a0', belt: 'blue' },
+  sera: { face: 'heroine', hair: 'long', colors: { hair: 'hairGold', hairS: 'hairGoldS', eye: '#2aa0a0', chest: '#e4dac4', sleeve: '#e4dac4', forearm: '#e4dac4', glove: 'skin', pants: '#e4dac4', boots: '#c8b8a0', belt: 'blue' },
     parts: [(rig) => {
       const B = rig.b;
-      skirt(rig, 'creamL', [[0.13, 0.06], [0.16, -0.2], [0.24, -0.55], [0.3, -0.82]], { y: 0.06 });
+      skirt(rig, '#ddd2ba', [[0.13, 0.06], [0.16, -0.2], [0.24, -0.55], [0.3, -0.82]], { y: 0.06 });
       skirt(rig, 'gold', [[0.301, -0.79], [0.305, -0.83]], { y: 0.06 });
       skirt(rig, 'blue', [[0.12, 0.05], [0.13, -0.1], [0.11, -0.45], [0.1, -0.78]], { gap: 5.2, y: 0.06 });
       const collar = taper(0.08, 0.1, 0.09, 'creamL', { open: true, up: true }); collar.position.y = 0.27; B.chest.add(collar);

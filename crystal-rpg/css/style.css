@@ -357,3 +357,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .target-panel .back-btn { position: static; margin-top: 6px; width: 100%; }
 .prow.pickable { cursor: pointer; }
 .prow.targeted { background: linear-gradient(90deg, rgba(255,214,110,.55), rgba(255,214,110,.08)) !important; box-shadow: inset 0 0 0 2px #ffd070; animation: pulse .5s infinite alternate; }
+
+/* ── 기술 컷인 ── */
+.cutin { position:absolute; left:0; right:0; top:22%; height:150px; pointer-events:none; z-index:40; overflow:visible; --c:#8fd8ff; --d:.95s; }
+.cutin .ci-band { position:absolute; left:-5%; right:-5%; top:20px; bottom:20px; transform:skewY(-5deg) scaleY(0);
+  background: linear-gradient(90deg, rgba(8,12,34,0) 0%, rgba(10,18,48,.92) 14%, rgba(16,26,66,.92) 70%, rgba(8,12,34,0) 100%);
+  border-top:3px solid var(--c); border-bottom:3px solid var(--c); box-shadow: 0 0 24px var(--c), inset 0 0 40px rgba(0,0,0,.6);
+  animation: ciBand var(--d) cubic-bezier(.2,.9,.2,1) forwards; }
+.cutin .ci-lines { position:absolute; left:0; right:0; top:28px; bottom:28px; transform:skewY(-5deg); opacity:0;
+  background: repeating-linear-gradient(90deg, transparent 0 34px, rgba(255,255,255,.18) 34px 36px, transparent 36px 90px);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); mask: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  animation: ciLines var(--d) linear forwards; }
+.cutin .ci-por { position:absolute; left:4%; bottom:4px; height:190px; image-rendering:pixelated; filter: drop-shadow(0 0 6px var(--c)) drop-shadow(4px 4px 0 rgba(0,0,0,.6));
+  animation: ciPor var(--d) cubic-bezier(.15,.9,.25,1) forwards; opacity:0; }
+.cutin .ci-name { position:absolute; right:7%; top:50%; transform:translateY(-50%); text-align:right; opacity:0; animation: ciName var(--d) cubic-bezier(.15,.9,.25,1) forwards; }
+.cutin .ci-name span { display:inline-block; font-size:34px; font-weight:900; color:#fff; letter-spacing:2px; font-style:italic;
+  text-shadow: 0 0 10px var(--c), 0 0 22px var(--c), 3px 3px 0 #000; vertical-align:middle; }
+.cutin .ci-name img { width:30px; height:30px; image-rendering:pixelated; vertical-align:middle; margin-right:8px; }
+.cutin .ci-name small { display:block; font-size:13px; color: var(--c); letter-spacing:4px; text-shadow: 1px 1px 0 #000; }
+.cutin.foe .ci-band { background: linear-gradient(90deg, rgba(40,6,12,0) 0%, rgba(60,8,18,.92) 20%, rgba(60,8,18,.92) 86%, rgba(40,6,12,0) 100%); }
+.cutin.foe .ci-name { right:auto; left:8%; text-align:left; }
+@keyframes ciBand { 0%{transform:skewY(-5deg) scaleY(0)} 12%{transform:skewY(-5deg) scaleY(1.15)} 18%,82%{transform:skewY(-5deg) scaleY(1); opacity:1} 100%{transform:skewY(-5deg) scaleY(0); opacity:0} }
+@keyframes ciLines { 0%{opacity:0; background-position-x:0} 15%{opacity:1} 85%{opacity:1} 100%{opacity:0; background-position-x:-600px} }
+@keyframes ciPor { 0%{opacity:0; transform:translateX(-120%) scale(1.15)} 18%{opacity:1; transform:translateX(0) scale(1)} 80%{opacity:1; transform:translateX(18px)} 100%{opacity:0; transform:translateX(60%)} }
+@keyframes ciName { 0%{opacity:0; transform:translate(80px,-50%)} 22%{opacity:1; transform:translate(0,-50%)} 80%{opacity:1; transform:translate(-14px,-50%)} 100%{opacity:0; transform:translate(-80px,-50%)} }
+@media (max-width: 640px) { .cutin { top:18%; height:120px } .cutin .ci-por{height:150px; left:0} .cutin .ci-name span{font-size:24px} .cutin .ci-name{right:4%} }
