@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>캐릭터 랩</title>
+<style>body{background:#3a4a6a;color:#fff;font-family:sans-serif;margin:10px} canvas{image-rendering:pixelated;background:#6a8a5a;margin:2px} .row{display:flex;align-items:flex-end;gap:2px;margin-bottom:6px} span{width:70px;font-size:12px}</style></head>
+<body><div id="o"></div>
+<script type="module">
+import { composeChar2 } from '../js/art/generate.js';
+import { POSES2, DESIGNS2 } from '../js/art/chars2.data.js';
+const q = new URLSearchParams(location.search), S = +(q.get('s') || 4);
+const ids = (q.get('ids') || Object.keys(DESIGNS2).join(',')).split(',');
+const W = { leon: 'sword', sera: 'staff', kyle: 'sword', rhea: 'spear', bran: 'sword' };
+const frames = q.get('f')==='1' ? [['idle',0]] : [['idle',0],['walk',0],['walk',2],['attack_slash',0],['attack_slash',2],['attack_slash',3],['cast',1],['hurt',0],['victory',0],['guard',0]];
+for (const id of ids) {
+  const row = document.createElement('div'); row.className = 'row'; row.innerHTML = `<span>${id}</span>`;
+  for (const [a, i] of frames) {
+    const key = a === 'attack_slash' && W[id] === 'spear' ? 'attack_thrust' : a;
+    const b = composeChar2(id, POSES2[key][i], W[id] ? { type: W[id] } : null);
+    const c = b.toCanvas(); c.style.width = c.width * S + 'px'; row.appendChild(c);
+  }
+  document.getElementById('o').appendChild(row);
+}
+</script></body></html>

@@ -121,6 +121,7 @@ export class BattleScene {
     const k = 1 - Math.exp(-realDt * this.camTarget.k);
     this.cam.pos.lerp(this.camTarget.pos, k); this.cam.look.lerp(this.camTarget.look, k);
     this.stage.camera.position.copy(this.cam.pos); this.stage.camera.lookAt(this.cam.look);
+    this.stage.focusOn(this.cam.look.clone().setY(0.6), 3.2, 0.22);
     this.ui.positionTags();
   }
 

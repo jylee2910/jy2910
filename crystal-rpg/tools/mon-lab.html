@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>몬스터 랩</title><style>body{background:#3a4a6a;margin:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end} canvas{image-rendering:pixelated;background:#6a8a5a}</style></head><body>
+<script type="module">
+import { makeMonsterSheet } from '../js/art/generate.js';
+import { MONSTER_DESIGNS } from '../js/art/sprites.data.js';
+const S = +(new URLSearchParams(location.search).get('s') || 3);
+for (const id of Object.keys(MONSTER_DESIGNS)) {
+  const sh = makeMonsterSheet(id), m = sh.meta, full = sh.buf.toCanvas();
+  const c = document.createElement('canvas'); c.width = m.frameW; c.height = m.frameH;
+  c.getContext('2d').drawImage(full, 0, 0, m.frameW, m.frameH, 0, 0, m.frameW, m.frameH);
+  c.style.width = m.frameW * S + 'px'; document.body.appendChild(c);
+}
+</script></body></html>

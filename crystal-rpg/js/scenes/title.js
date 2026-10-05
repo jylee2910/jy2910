@@ -110,6 +110,7 @@ export class TitleScene {
     const r = this.stage.width < this.stage.height ? 19 : 15;
     this.stage.camera.position.set(Math.sin(a) * r, 8 + Math.sin(this.t * 0.2) * 0.5, Math.cos(a) * r);
     this.stage.camera.lookAt(0, 0, 0);
+    this.stage.focusOn(new THREE.Vector3(0, 0.5, 0), 3, 0.25);
     if (this.mode === 'ending' && Math.random() < 0.3) this.fx.aura(new THREE.Vector3(0, 0.2, -1.5), 0x7ef0ff, 4);
   }
 }

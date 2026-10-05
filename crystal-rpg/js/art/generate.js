@@ -207,17 +207,41 @@ const MON_FX = {
   hurt: [{ dx: -4, kx: -0.15, flash: true }, { dx: -2, kx: -0.06 }],
 };
 
+// EPX(Scale2x): 도트 그리드를 2배로 키우며 계단 모서리를 매끄럽게
+export function epx(rows) {
+  const H = rows.length, W = rows[0].length, out = [];
+  const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? '.' : rows[y][x];
+  for (let y = 0; y < H; y++) {
+    let r1 = '', r2 = '';
+    for (let x = 0; x < W; x++) {
+      const P = at(x, y), A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+      let p1 = P, p2 = P, p3 = P, p4 = P;
+      if (C === A && C !== D && A !== B) p1 = A;
+      if (A === B && A !== C && B !== D) p2 = B;
+      if (D === C && D !== B && C !== A) p3 = C;
+      if (B === D && B !== A && D !== C) p4 = D;
+      r1 += p1 + p2; r2 += p3 + p4;
+    }
+    out.push(r1, r2);
+  }
+  return out;
+}
+
 export function makeMonsterSheet(designId) {
   const design = MONSTER_DESIGNS[designId];
   const shape = MONSTER_SHAPES[design.shape];
-  const rows = normalizeGrid(shape.grid, !!shape.mirror);
+  const HD = shape.hd !== false;
+  const NATIVE = !!shape.native;
+  let rows = normalizeGrid(shape.grid, !!shape.mirror);
+  if (HD) rows = epx(rows);
   const gw = rows[0].length, gh = rows.length;
   const base = new PixBuf(gw, gh);
   for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
     const c = cellColor(rows[y][x], design.colors); if (c) base.set(x, y, c);
   }
-  const pad = 8;
+  const pad = HD || NATIVE ? 14 : 8;
   const fw = gw + pad * 2, fh = gh + pad;
+  if (HD || NATIVE) selOut(base);
   const cols = 4;
   const sheet = new PixBuf(fw * cols, fh * MONSTER_ANIMS.length);
   const anims = {};
@@ -228,13 +252,13 @@ export function makeMonsterSheet(designId) {
       const src = new PixBuf(fw, fh);
       src.blitBuf(base, pad, pad);
       const out = new PixBuf(fw, fh);
-      resample(src, out, t, fw / 2, fh);
+      resample(src, out, HD ? { ...t, dx: (t.dx || 0) * 2, dy: (t.dy || 0) * 2 } : t, fw / 2, fh);
       if (t.glow) addGlow(out, glowRGB, 230);
       sheet.blitBuf(out, fi * fw, ri * fh);
     });
     anims[a.name] = { row: ri, frames: fx.length, fps: a.fps, loop: a.loop, hit: a.hit };
   });
-  return { buf: sheet, meta: { frameW: fw, frameH: fh, cols, rows: MONSTER_ANIMS.length, anims, bodyW: gw, bodyH: gh } };
+  return { buf: sheet, meta: { frameW: fw, frameH: fh, cols, rows: MONSTER_ANIMS.length, anims, bodyW: gw, bodyH: gh, ppu: HD || NATIVE ? 1 / 27 : undefined } };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -301,12 +325,29 @@ function resolveRecipe(name) {
   return { ...b, ...r, noise: [...(b.noise || []), ...(r.noise || [])], sprinkle: r.sprinkle || b.sprinkle };
 }
 
+// 이음매 없는(타일링) 값 노이즈 0..1
+function valueNoise(size, cell, rand) {
+  const g = Math.max(1, Math.round(size / cell));
+  const v = []; for (let i = 0; i < g * g; i++) v.push(rand());
+  const at = (i, j) => v[((j % g + g) % g) * g + ((i % g + g) % g)];
+  const sm = t => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = x / cell, fy = y / cell, i = Math.floor(fx), j = Math.floor(fy);
+    const u = sm(fx - i), w = sm(fy - j);
+    const a = at(i, j) + (at(i + 1, j) - at(i, j)) * u, b = at(i, j + 1) + (at(i + 1, j + 1) - at(i, j + 1)) * u;
+    return a + (b - a) * w;
+  };
+}
+
 export function makeTexture(name, variant = 0, size = TILE_SIZE) {
   const r = resolveRecipe(name);
+  size = r.size || size;
   const rand = rng(1234 + variant * 7919 + name.length * 131 + name.charCodeAt(0) * 17);
   const buf = new PixBuf(size, size);
-  const fill = rgbOf(r.fill);
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) buf.set(x, y, fill);
+  if (r.fill !== 'none') {
+    const fill = rgbOf(r.fill);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) buf.set(x, y, fill);
+  }
   const shadeIdx = (arr, i) => rgbOf(arr[Math.abs(i) % arr.length]);
 
   switch (r.pattern) {
@@ -387,6 +428,84 @@ export function makeTexture(name, variant = 0, size = TILE_SIZE) {
       }
       break;
     }
+    case 'patches': {
+      // 두 단계 노이즈로 얼룩 + 미세 질감
+      const n1 = valueNoise(size, r.cell || 8, rand), n2 = valueNoise(size, (r.cell || 8) / 2, rand);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const n = n1(x, y) * 0.7 + n2(x, y) * 0.3;
+        if (n < (r.t1 ?? 0.38)) buf.set(x, y, rgbOf(r.dark));
+        else if (r.darker && n < (r.t0 ?? 0.28)) buf.set(x, y, rgbOf(r.darker));
+        else if (n > (r.t2 ?? 0.64)) buf.set(x, y, rgbOf(r.light));
+        if (r.darker && n < (r.t0 ?? 0.28)) buf.set(x, y, rgbOf(r.darker));
+      }
+      break;
+    }
+    case 'cobble': {
+      // 보로노이 셀로 둥근 돌바닥 (타일링)
+      const N = r.stones || 14, pts = [];
+      for (let i = 0; i < N; i++) pts.push([rand() * size, rand() * size, Math.floor(rand() * r.shades.length)]);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        let d1 = 1e9, d2 = 1e9, best = null, bx = 0, by = 0;
+        for (const p of pts) for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) {
+          const dx = x + 0.5 - (p[0] + ox), dy = y + 0.5 - (p[1] + oy), d = dx * dx + dy * dy;
+          if (d < d1) { d2 = d1; d1 = d; best = p; bx = dx; by = dy; } else if (d < d2) d2 = d;
+        }
+        const edge = Math.sqrt(d2) - Math.sqrt(d1);
+        if (edge < 1.1) buf.set(x, y, rgbOf(r.mortar));
+        else {
+          let c = r.shades[best[2]];
+          if (edge < 2.1 && (bx + by) > 0) c = r.shade;            // 아래/오른쪽 가장자리 그림자
+          else if (edge < 2.1 && (bx + by) < -1) c = r.hi;         // 위/왼쪽 하이라이트
+          buf.set(x, y, rgbOf(c));
+        }
+      }
+      break;
+    }
+    case 'strata': {
+      // 절벽: 지층 줄무늬 + 박힌 돌 + 위쪽 풀 가장자리
+      const wob = valueNoise(size, 8, rand);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const band = Math.floor((y + wob(x, y) * 6) / (r.bandH || 6));
+        buf.set(x, y, rgbOf(r.bands[band % r.bands.length]));
+      }
+      for (let i = 0; i < (r.stones || 5); i++) {
+        const cx = Math.floor(rand() * size), cy = (r.lip || 0) + 3 + Math.floor(rand() * (size - (r.lip || 0) - 4));
+        const rw = 2 + Math.floor(rand() * 3), rh = 1 + Math.floor(rand() * 2);
+        for (let y = -rh - 1; y <= rh + 1; y++) for (let x = -rw - 1; x <= rw + 1; x++) {
+          const d = (x * x) / (rw * rw) + (y * y) / (rh * rh);
+          const px = (cx + x + size) % size, py = cy + y;
+          if (py < 0 || py >= size) continue;
+          if (d <= 1) buf.set(px, py, rgbOf(y < 0 ? r.stoneL : r.stone));
+          else if (d <= 1.9 && y >= 0) buf.set(px, py, rgbOf(r.stoneS));
+        }
+      }
+      if (r.lip) for (let x = 0; x < size; x++) {
+        const d = r.lip - 1 + Math.floor(wob(x, 0) * 3 + rand() * 1.5);
+        for (let y = 0; y <= d; y++) buf.set(x, y, rgbOf(y === d ? r.lipColors[2] : y === d - 1 ? r.lipColors[1] : r.lipColors[0]));
+      }
+      break;
+    }
+    case 'tuft': {
+      // 투명 배경 풀 포기 (빌보드용)
+      for (let i = 0; i < (r.blades || 9); i++) {
+        let x = 2 + rand() * (size - 4);
+        const h = size * (0.45 + rand() * 0.5), lean = (rand() - 0.5) * 0.5 + (x - size / 2) / size * 0.6;
+        for (let k = 0; k < h; k++) {
+          const y = size - 1 - k, t = k / h;
+          const c = t < 0.3 ? r.colors[0] : t < 0.75 ? r.colors[1] : r.colors[2];
+          buf.set(Math.round(x), y, rgbOf(c));
+          if (t < 0.4) buf.set(Math.round(x) + 1, y, rgbOf(r.colors[0]));
+          x += lean;
+        }
+      }
+      for (let i = 0; i < (r.flowers || 0); i++) {
+        const fx = 3 + Math.floor(rand() * (size - 6)), fy = 2 + Math.floor(rand() * (size * 0.4));
+        const fc = rgbOf(r.flowerColors[i % r.flowerColors.length]);
+        for (let k = fy + 1; k < size; k++) if (rand() < 0.8) buf.set(fx, k, rgbOf(r.colors[1]));
+        buf.set(fx, fy - 1, fc); buf.set(fx - 1, fy, fc); buf.set(fx + 1, fy, fc); buf.set(fx, fy + 1, fc); buf.set(fx, fy, rgbOf('flowerYellow'));
+      }
+      break;
+    }
     case 'grassEdge': {
       for (let x = 0; x < size; x++) {
         const d = 3 + Math.floor(rand() * 3);
@@ -415,3 +534,109 @@ export function makeTexture(name, variant = 0, size = TILE_SIZE) {
   }
   return buf;
 }
+
+// ─────────────────────────────────────────────────────────────
+//  캐릭터 v2 (48px): 파츠 합성 + 흔들림 파츠 + 셀아웃 외곽선
+// ─────────────────────────────────────────────────────────────
+import { FRAME2, ANIMS2, ANCHORS2, ARM2, HEADS2, TORSOS2, LEGS2, LEGSETS2, ARMS2, SWAY2, SHIELD2, WEAPONS2, POSES2, DESIGNS2 } from './chars2.data.js';
+
+function darkColors(colors) {
+  const out = {};
+  for (const [k, v] of Object.entries(colors)) out[k] = (k !== 'O' && PALETTE[v + 'S']) ? v + 'S' : v;
+  return out;
+}
+
+// 내부 외곽선을 주변 색의 어두운 톤으로 바꿔 부드럽고 고급스럽게 (셀아웃)
+export function selOut(buf, inkName = 'ink') {
+  const ink = rgbOf(inkName);
+  const W = buf.w, H = buf.h, src = buf.d.slice();
+  const isInk = i => src[i + 3] > 0 && src[i] === ink[0] && src[i + 1] === ink[1] && src[i + 2] === ink[2];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    if (!isInk(i)) continue;
+    let outer = false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || src[(ny * W + nx) * 4 + 3] === 0) { outer = true; break; }
+    }
+    if (outer) continue;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = (ny * W + nx) * 4;
+      if (src[j + 3] && !isInk(j)) { r += src[j]; g += src[j + 1]; b += src[j + 2]; n++; }
+    }
+    if (!n) continue;
+    const k = 0.5;
+    buf.d[i] = (r / n) * k + ink[0] * (1 - k) * 0.6;
+    buf.d[i + 1] = (g / n) * k + ink[1] * (1 - k) * 0.6;
+    buf.d[i + 2] = (b / n) * k + ink[2] * (1 - k) * 0.6;
+  }
+}
+
+function hand2(sh, deg) { const t = deg * Math.PI / 180; return { x: sh.x - Math.sin(t) * ARM2.hand, y: sh.y + Math.cos(t) * ARM2.hand }; }
+
+export function composeChar2(designId, pose, weapon) {
+  const d = DESIGNS2[designId];
+  const { w: FW, h: FH } = FRAME2;
+  const buf = new PixBuf(FW, FH);
+  const col = d.colors, dcol = darkColors(col);
+  const [bx, by] = pose.b || [0, 0];
+  const [hx, hy] = pose.h || [0, 0];
+  const A = ANCHORS2;
+  const sw = pose.sw || 0;
+  const torso = TORSOS2[d.torso];
+  const legs = LEGS2[(LEGSETS2[d.legs] || LEGSETS2.boots)[pose.legs || 'stand']];
+  const arm = ARMS2[d.arm];
+  const headX = A.head[0] + bx + hx, headY = A.head[1] + by + hy;
+  // 1) 망토/코트자락 (몸 뒤)
+  if (d.cape) { const [cx, cy] = d.capeAt || A.cape; const fr = SWAY2[d.cape][sw % SWAY2[d.cape].length]; drawGrid(buf, fr, col, cx + bx, cy + by); }
+  // 2) 뒷머리/리본 (머리 뒤)
+  if (d.tail && !d.tailFront) { const fr = SWAY2[d.tail][sw % SWAY2[d.tail].length]; drawGrid(buf, fr, col, headX + d.tailAt[0], headY + d.tailAt[1]); }
+  // 3) 뒷팔
+  const bs = { x: A.shoulderB[0] + bx, y: A.shoulderB[1] + by };
+  drawGridRot(buf, arm, dcol, ARM2.pivot, bs.x, bs.y, pose.ba ?? 0);
+  // 4) 다리 → 몸통 → 머리
+  drawGrid(buf, legs, col, A.legs[0], A.legs[1]);
+  drawGrid(buf, torso.grid, col, A.torso[0] + (torso.dx || 0) + bx, A.torso[1] + by);
+  drawGrid(buf, HEADS2[d.head], col, headX, headY);
+  if (d.tail && d.tailFront) { const fr = SWAY2[d.tail][sw % SWAY2[d.tail].length]; drawGrid(buf, fr, col, headX + d.tailAt[0], headY + d.tailAt[1]); }
+  // 5) 방패
+  if (d.shield) drawGrid(buf, SHIELD2.grid, col, SHIELD2.x + bx, SHIELD2.y + by);
+  // 6) 무기 → 앞팔
+  const fs = { x: A.shoulderF[0] + bx, y: A.shoulderF[1] + by };
+  if (weapon) {
+    const hp = hand2(fs, pose.fa ?? 0);
+    const shape = WEAPONS2[weapon.type];
+    const wc = { O: 'ink', l: 'leatherS', ...WEAPON_COLORS[weapon.type], ...(weapon.tint || {}) };
+    drawGridRot(buf, shape.grid, wc, shape.grip, hp.x, hp.y, (pose.w ?? 180) - 180);
+  }
+  drawGridRot(buf, arm, col, ARM2.pivot, fs.x, fs.y, pose.fa ?? 0);
+  selOut(buf);
+  if (pose.glow) addGlow(buf, rgbOf('crystalL'), 230);
+  if (pose.ko) return rotateKO(buf);
+  return buf;
+}
+
+export function makeCharSheet2(designId, weapon) {
+  const style = weapon ? WEAPON_STYLE[weapon.type] : 'slash';
+  const rows = ANIMS2.map(a => ({ ...a, poses: POSES2[a.name === 'attack' ? 'attack_' + style : a.name] }));
+  const cols = Math.max(...rows.map(r => r.poses.length));
+  const { w, h } = FRAME2;
+  const sheet = new PixBuf(cols * w, rows.length * h);
+  const anims = {};
+  rows.forEach((r, ri) => {
+    r.poses.forEach((p, fi) => sheet.blitBuf(composeChar2(designId, p, weapon), fi * w, ri * h));
+    anims[r.name] = { row: ri, frames: r.poses.length, fps: r.fps, loop: r.loop, hit: r.hit };
+  });
+  return { buf: sheet, meta: { frameW: w, frameH: h, cols, rows: rows.length, anims, ppu: 1 / 27 } };
+}
+
+export function makeFaceIcon2(designId) {
+  const f = composeChar2(designId, POSES2.idle[0], null);
+  const out = new PixBuf(18, 18);
+  const [ax, ay] = ANCHORS2.head;
+  for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) { const p = f.get(ax - 1 + x, ay - 1 + y); if (p[3]) out.set(x, y, p, p[3]); }
+  return out;
+}
+export const HAS_DESIGN2 = id => !!DESIGNS2[id];

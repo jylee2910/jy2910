@@ -34,11 +34,12 @@ function show(g, buf, label, s = scale) {
   g.appendChild(f);
 }
 const weapons = { leon: 'sword', sera: 'staff', kyle: 'sword', rhea: 'spear', bran: 'sword' };
+import { makeCharSheet2, HAS_DESIGN2 } from '../js/art/generate.js';
 let g = section('캐릭터 시트 (행: idle/walk/attack/cast/hurt/guard/victory/ko)');
 const only = new URLSearchParams(location.search).get('only');
 for (const id of Object.keys(CHAR_DESIGNS)) {
   if (only && only !== 'chars') break;
-  show(g, makeCharSheet(id, weapons[id] ? { type: weapons[id] } : null).buf, id);
+  show(g, (HAS_DESIGN2(id) ? makeCharSheet2 : makeCharSheet)(id, weapons[id] ? { type: weapons[id] } : null).buf, id);
 }
 g = section('몬스터 시트 (행: idle/attack/cast/hurt)');
 for (const id of Object.keys(MONSTER_DESIGNS)) if (!only || only === 'mon') show(g, makeMonsterSheet(id).buf, id, 2);

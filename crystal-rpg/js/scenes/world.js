@@ -30,27 +30,33 @@ function routeTiles(a, b) {
 
 function worldRows() {
   const [W, H] = WORLD.size;
-  const grid = [];
+  const grid = [], lv = [];
   for (let y = 0; y < H; y++) {
-    const row = [];
+    const row = [], lr = [];
     for (let x = 0; x < W; x++) {
       const cx = (x - W / 2) / (W / 2), cy = (y - H / 2) / (H / 2);
       const d = Math.sqrt(cx * cx * 0.9 + cy * cy) + (hash(x, y) - 0.5) * 0.12 + Math.sin(x * 0.7) * 0.04;
       let t = d > 1.02 ? '~' : d > 0.93 ? '_' : '.';
+      let h = d > 0.93 ? 0 : 1;
       if (t === '.') {
         const n = hash(x * 3, y * 7);
         if (n < 0.1) t = 'T'; else if (n < 0.16) t = ','; else if (n < 0.19) t = 'o';
-        if (y < 7 && x > 11 && x < 24 && n < 0.35) t = '#';   // 북쪽 산악
+        // 북쪽 산악: 높이 언덕 + 침엽수/바위
+        const m = Math.max(0, 1 - Math.hypot((x - 17) / 8, (y - 2) / 5));
+        if (m > 0.05) { h = 1 + Math.round(m * 5 + (hash(x, y * 3) - 0.5) * 1.2); if (n < 0.35) t = 't'; else if (n < 0.5) t = 'o'; }
         if (x > 20 && y > 10 && n < 0.55) t = 't';            // 동쪽 숲
+        // 서쪽 낮은 언덕
+        if (x < 9 && y < 9 && hash(x + 4, y) < 0.5) h = 2;
       }
-      row.push(t);
+      row.push(t); lr.push(Math.max(0, Math.min(9, h)));
     }
-    grid.push(row);
+    grid.push(row); lv.push(lr);
   }
   const routes = WORLD.routes.map(r => ({ ...r, tiles: routeTiles(WORLD.nodes[r.a], WORLD.nodes[r.b]) }));
-  for (const r of routes) for (const [x, y] of r.tiles) grid[y][x] = ':';
-  for (const n of Object.values(WORLD.nodes)) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const c = grid[n.y + dy]?.[n.x + dx]; if (c && c !== ':' && c !== '~') grid[n.y + dy][n.x + dx] = n.kind === 'cave' ? '_' : '.'; }
-  return { rows: grid.map(r => r.join('')), routes };
+  const flat = (x, y, c) => { if (!grid[y] || grid[y][x] === undefined) return; if (c) grid[y][x] = c; lv[y][x] = 1; };
+  for (const r of routes) for (const [x, y] of r.tiles) { flat(x, y, ':'); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { if (grid[y + dy]?.[x + dx] && grid[y + dy][x + dx] !== ':' && grid[y + dy][x + dx] !== '~') flat(x + dx, y + dy, grid[y + dy][x + dx] === 't' || grid[y + dy][x + dx] === 'T' || grid[y + dy][x + dx] === 'o' ? ',' : null); } }
+  for (const n of Object.values(WORLD.nodes)) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const c = grid[n.y + dy]?.[n.x + dx]; if (c && c !== ':' && c !== '~') { grid[n.y + dy][n.x + dx] = n.kind === 'cave' ? '_' : '.'; lv[n.y + dy][n.x + dx] = 1; } }
+  return { rows: grid.map(r => r.join('')), heights: lv.map(r => r.join('')), routes };
 }
 
 export class WorldScene {
@@ -63,13 +69,13 @@ export class WorldScene {
   build() {
     const scene = this.scene = new THREE.Scene();
     this.theme = applyTheme(scene, 'world', 34);
-    const { rows, routes } = worldRows();
+    const { rows, heights, routes } = worldRows();
     this.routes = routes;
-    this.dio = buildDiorama({ rows, objects: [] });
+    this.dio = buildDiorama({ rows, heights, objects: [], theme: 'world' }, { grass: 1 });
     scene.add(this.dio.group);
     // 넓은 바다
     const sea = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshLambertMaterial({ color: 0x2a70c0 }));
-    sea.rotation.x = -Math.PI / 2; sea.position.y = -0.5; scene.add(sea);
+    sea.rotation.x = -Math.PI / 2; sea.position.y = -0.16; scene.add(sea);
     // 노드 랜드마크
     this.markers = {};
     for (const [id, n] of Object.entries(WORLD.nodes)) {
@@ -227,6 +233,7 @@ export class WorldScene {
     this.camPos = this.camPos ? this.camPos.lerp(want, 1 - Math.exp(-dt * 3)) : want;
     this.stage.camera.position.copy(this.camPos);
     this.stage.camera.lookAt(this.camPos.clone().sub(off).add(new THREE.Vector3(0, 0, portrait ? -2.5 : -1)));
+    this.stage.focusOn(p, 4, 0.18);
     for (const [id, d] of Object.entries(this.labelEls || {})) {
       const q = this.stage.project(this.markers[id].position.clone().setY(1.6));
       d.style.transform = `translate(${q.x}px, ${q.y}px) translate(-50%, -100%)`;

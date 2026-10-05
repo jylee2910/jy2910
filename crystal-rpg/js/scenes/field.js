@@ -173,8 +173,9 @@ export class FieldScene {
     });
   }
 
-  blockedAt(x, y) {
+  blockedAt(x, y, fx, fy) {
     if (!this.dio.walkable(x, y)) return true;
+    if (fx !== undefined && !this.dio.canMove(fx, fy, x, y)) return true;
     const th = this.things.get(x + ',' + y);
     return !!th;
   }
@@ -209,12 +210,14 @@ export class FieldScene {
     let tx, ty;
     if (target) [tx, ty] = target.split(',').map(Number);
     else {
-      const hit = new THREE.Vector3();
-      if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) return;
-      tx = Math.round(hit.x - this.dio.ox); ty = Math.round(hit.z - this.dio.oz);
+      const hits = ray.intersectObjects(this.dio.pickables, false);
+      if (!hits.length) return;
+      const h = hits[0], hp = h.point.clone();
+      if (h.face) hp.addScaledVector(h.face.normal, -0.05);
+      tx = Math.round(hp.x - this.dio.ox); ty = Math.round(hp.z - this.dio.oz);
     }
     const th = this.things.get(tx + ',' + ty);
-    this.marker.position.copy(this.dio.toWorld(tx, ty)).setY(0.03);
+    this.marker.position.copy(this.dio.toWorld(tx, ty)).add(new THREE.Vector3(0, 0.03, 0));
     this.marker.material.opacity = 0.9;
     if (th) {
       // 인접 칸까지 이동 후 조사
@@ -240,7 +243,7 @@ export class FieldScene {
       if (x === tx && y === ty) break;
       for (const [dx, dy] of Object.values(DIRS)) {
         const nx = x + dx, ny = y + dy, k = key(nx, ny);
-        if (prev.has(k) || this.blockedAt(nx, ny)) continue;
+        if (prev.has(k) || this.blockedAt(nx, ny, x, y)) continue;
         prev.set(k, [x, y]); q.push([nx, ny]);
       }
     }
@@ -259,8 +262,7 @@ export class FieldScene {
   tryStep(dx, dy) {
     this.face(dx, dy);
     const nx = this.px + dx, ny = this.py + dy;
-    // 출구 (맵 가장자리 밖 또는 출구 타일)
-    if (this.blockedAt(nx, ny)) return false;
+    if (this.blockedAt(nx, ny, this.px, this.py)) return false;
     this.trail.unshift({ x: this.px, y: this.py });
     this.trail.length = Math.min(this.trail.length, 4);
     const from = this.party.map(m => m.sprite.group.position.clone());
@@ -434,7 +436,7 @@ export class FieldScene {
       n.wanderT = 2 + Math.random() * 4;
       const [dx, dy] = Object.values(DIRS)[Math.floor(Math.random() * 4)];
       const nx = n.x + dx, ny = n.y + dy;
-      if (Math.abs(nx - n.home.x) > 2 || Math.abs(ny - n.home.y) > 2 || this.blockedAt(nx, ny) || (nx === this.px && ny === this.py) || this.trail.some(t => t.x === nx && t.y === ny)) continue;
+      if (Math.abs(nx - n.home.x) > 2 || Math.abs(ny - n.home.y) > 2 || this.blockedAt(nx, ny, n.x, n.y) || (nx === this.px && ny === this.py) || this.trail.some(t => t.x === nx && t.y === ny)) continue;
       this.things.delete(n.x + ',' + n.y); n.x = nx; n.y = ny; this.things.set(nx + ',' + ny, { type: 'npc', npc: n });
       n.walk = { t: 0, from: n.sprite.group.position.clone(), to: this.dio.toWorld(nx, ny) };
       if (dx) n.sprite.flipped = dx > 0;
@@ -450,7 +452,7 @@ export class FieldScene {
     const p = this.party[0].sprite.group.position;
     const portrait = this.stage.width < this.stage.height;
     const steep = this.map.theme === 'forest';
-    const off = portrait ? new THREE.Vector3(0, steep ? 12.5 : 11, steep ? 10 : 11.5) : new THREE.Vector3(0, steep ? 8.8 : 7.8, steep ? 8.4 : 9.6);
+    const off = portrait ? new THREE.Vector3(0, steep ? 12 : 10.5, steep ? 10.5 : 12) : new THREE.Vector3(0, steep ? 8.2 : 6.9, steep ? 9 : 10.4);
     const want = p.clone().add(off);
     if (!this.camPos) this.camPos = want.clone();
     this.camPos.lerp(want, 1 - Math.exp(-dt * 5));
@@ -458,7 +460,8 @@ export class FieldScene {
     this.stage.camera.lookAt(this.camPos.clone().sub(off).add(new THREE.Vector3(0, 0.4, 0)));
     // 가림 처리 유니폼 (플레이어 가슴 높이의 화면 좌표/깊이)
     this.stage.camera.updateMatrixWorld();
-    const c = p.clone().setY(0.7).project(this.stage.camera);
+    const c = p.clone().add(new THREE.Vector3(0, 0.7, 0)).project(this.stage.camera);
+    this.stage.focusOn(p.clone().add(new THREE.Vector3(0, 0.6, 0)), 2.2, 0.28);
     const pr = this.stage.pixelRatio;
     OCCLUSION.uOccPos.value.set((c.x * 0.5 + 0.5) * this.stage.width * pr, (c.y * 0.5 + 0.5) * this.stage.height * pr);
     OCCLUSION.uOccDepth.value = c.z * 0.5 + 0.5 - 0.0005;

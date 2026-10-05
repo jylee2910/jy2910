@@ -48,7 +48,11 @@ export const PALETTE = {
   moss: '#5a8a4a', mossS: '#3c6634',
   caveRock: '#645c78', caveRockS: '#48405c', caveRockL: '#8a80a0',
   flowerPink: '#ff9ac0', flowerYellow: '#ffe070', flowerWhite: '#fffaf0', flowerBlue: '#8ab4ff',
-  sand: '#e8d49a', sandS: '#c4ac72',
+  sand: '#e8d49a', sandS: '#c4ac72', sandL: '#f6e6b8',
+  earth: '#8a6242', earthS: '#664630', earthD: '#4a3226', earthL: '#a87c54',
+  pine: '#2f6a46', pineS: '#1f4a34', pineL: '#4c8c58', pineD: '#163a2a',
+  grassDD: '#2c5426', mossL: '#7aa85a',
+  riverbed: '#6e6450', clay: '#b0704a', clayS: '#7e4a32',
 
   // UI
   uiBlue: '#1a2c78', uiBlueL: '#3a5cc8', uiBlueD: '#0c1440',

@@ -1,5 +1,5 @@
 // 에셋 레지스트리: 생성 결과를 캐시하고, overrides.js에 등록된 외부 PNG가 있으면 그것을 우선 사용한다.
-import { makeCharSheet, makeMonsterSheet, makeIcon, makeWeaponIcon, makeFaceIcon, makeTexture } from './generate.js';
+import { makeCharSheet, makeCharSheet2, HAS_DESIGN2, makeMonsterSheet, makeIcon, makeWeaponIcon, makeFaceIcon, makeFaceIcon2, makeTexture } from './generate.js';
 import { OVERRIDES } from './overrides.js';
 
 const cache = new Map();
@@ -34,7 +34,7 @@ function memo(key, fn) {
 export function charSheet(designId, weapon) {
   const key = 'char:' + designId + ':' + (weapon ? weapon.type + JSON.stringify(weapon.tint || {}) : '-');
   return memo(key, () => {
-    const gen = makeCharSheet(designId, weapon);
+    const gen = HAS_DESIGN2(designId) ? makeCharSheet2(designId, weapon) : makeCharSheet(designId, weapon);
     const ext = loaded.get('chars:' + designId);
     return { key, canvas: ext ? toCanvasFromImage(ext) : gen.buf.toCanvas(), meta: gen.meta };
   });
@@ -53,7 +53,7 @@ export function iconCanvas(name) {
     const ext = loaded.get('icons:' + name);
     if (ext) return toCanvasFromImage(ext);
     if (name.startsWith('w_')) return makeWeaponIcon(name.slice(2)).toCanvas();
-    if (name.startsWith('face_')) return makeFaceIcon(name.slice(5)).toCanvas();
+    if (name.startsWith('face_')) { const id = name.slice(5); return (HAS_DESIGN2(id) ? makeFaceIcon2(id) : makeFaceIcon(id)).toCanvas(); }
     return makeIcon(name).toCanvas();
   });
 }

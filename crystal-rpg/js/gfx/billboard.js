@@ -34,7 +34,8 @@ export class Billboard {
     if (this.mesh) { this.group.remove(this.mesh); this.mesh.geometry.dispose(); this.mat.dispose(); }
     this.sheet = sheet;
     const m = sheet.meta;
-    const w = m.frameW * PPU * this.scale, h = m.frameH * PPU * this.scale;
+    const ppu = m.ppu || PPU;
+    const w = m.frameW * ppu * this.scale, h = m.frameH * ppu * this.scale;
     const geo = new THREE.PlaneGeometry(w, h);
     geo.translate(0, h / 2, 0);
     const tex = sheetTexture(sheet);
