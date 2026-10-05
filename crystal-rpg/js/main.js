@@ -88,6 +88,14 @@ async function boot() {
     run();
     return;
   }
+  if (q.get('test') === 'field') {
+    G.s = newGameState();
+    G.s.party = (q.get('party') || 'leon,sera,bran').split(',');
+    G.s.roster = {};
+    for (const id of G.s.party) G.s.roster[id] = newChar(id, +(q.get('lv') || 5));
+    import('./scenes/field.js').then(({ FieldScene }) => app.setScene(new FieldScene(app, q.get('map') || 'town', { x: +(q.get('x') || 12), y: +(q.get('y') || 13), dir: 'up' })));
+    return;
+  }
   app.toTitle();
 }
 boot();

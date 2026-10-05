@@ -12,6 +12,7 @@ import { itemInfo } from '../data/items.js';
 import { G, addItem, flag, recruit, healAll, saveGame } from '../core/state.js';
 import * as Q from '../sys/quests.js';
 import { input } from '../core/input.js';
+import { camZoom, cycleZoom } from '../core/view.js';
 import { say, choice, banner, toast, el, root, icon, fade } from '../ui/ui.js';
 import { sfx, playBGM } from '../core/audio.js';
 import { BattleScene } from './battle.js';
@@ -19,7 +20,8 @@ import { openMenu } from '../ui/mainmenu.js';
 import { openShop } from '../ui/shop.js';
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-const STEP_TIME = 0.17;
+const WALK_SPEED = 4.4;   // 칸/초
+const FOLLOW_GAP = 0.78;  // 동료 간격
 
 function chestMesh() {
   const g = new THREE.Group();
@@ -132,8 +134,7 @@ export class FieldScene {
     this.stage.applyTilt();
     this.camPos = null;
     input.sceneHandler = k => this.onKey(k);
-    this.pointer = e => this.onPointer(e);
-    this.stage.renderer.domElement.addEventListener('pointerdown', this.pointer);
+    this.bindPointer();
     this.hud();
     playBGM(this.map.music);
     if (!this.entered) { banner(this.map.name, 'long'); this.entered = true; }
@@ -142,18 +143,20 @@ export class FieldScene {
 
   exit() {
     OCCLUSION.uOccR.value = 0;
-    this.stage.renderer.domElement.removeEventListener('pointerdown', this.pointer);
+    this.unbindPointer?.();
+    this.joyEl?.remove(); this.joyEl = null; this.joy = null;
     input.sceneHandler = null;
   }
 
   hud() {
     const h = el('div', 'field-hud');
-    h.innerHTML = `<div class="loc win">${this.map.name}</div><button class="menu-btn win">☰ 메뉴</button>`;
+    h.innerHTML = `<div class="loc win">${this.map.name}</div><button class="zoom-btn win" title="줌">🔍</button><button class="menu-btn win">☰ 메뉴</button>`;
     root().appendChild(h);
     h.querySelector('.menu-btn').onclick = e => { e.stopPropagation(); this.openMenu(); };
+    h.querySelector('.zoom-btn').onclick = e => { e.stopPropagation(); cycleZoom(); sfx('cursor'); };
     if (!G.s.flags.hintShown) {
       G.s.flags.hintShown = true;
-      const t = el('div', 'hint-bar win', matchMedia('(pointer: coarse)').matches ? '탭: 이동 · 사람/상자를 탭: 대화·조사 · ☰: 메뉴' : '방향키/WASD: 이동 · Z/Enter: 대화·조사 · X/Esc: 메뉴 · 클릭 이동 가능');
+      const t = el('div', 'hint-bar win', matchMedia('(pointer: coarse)').matches ? '드래그: 이동 · 탭: 그곳으로 이동/대화·조사 · 🔍: 줌 · ☰: 메뉴' : '방향키/WASD: 이동(대각선 가능) · Z/Enter: 대화·조사 · X/Esc: 메뉴 · 클릭/드래그 이동');
       root().appendChild(t); setTimeout(() => t.remove(), 6000);
     }
   }
@@ -168,12 +171,38 @@ export class FieldScene {
   rollEncounter() { const r = this.map.rate; return r ? r[0] + Math.floor(Math.random() * (r[1] - r[0])) : Infinity; }
 
   snapParty(keepTrail) {
+    this.fpos = { x: this.px, y: this.py };
     const p = this.dio.toWorld(this.px, this.py);
-    this.party.forEach((m, i) => {
-      const t = keepTrail && this.trail[i - 1] ? this.dio.toWorld(this.trail[i - 1].x, this.trail[i - 1].y) : p.clone().add(new THREE.Vector3(0, 0, 0.35 * i));
-      m.sprite.group.position.copy(i === 0 ? p : t);
-      m.sprite.play('idle');
-    });
+    this.crumbs = [p.clone()];
+    // 뒤따르는 동료: 기존 자취(타일) 방향으로 늘어서도록 빵부스러기 경로를 미리 깔아 둠
+    const back = keepTrail && this.trail?.length ? this.trail.map(t => this.dio.toWorld(t.x, t.y)) : [];
+    let last = p;
+    for (const b of back) { for (let k = 1; k <= 10; k++) this.crumbs.push(last.clone().lerp(b, k / 10)); last = b; }
+    if (this.crumbs.length < 2) for (let k = 1; k <= 30; k++) this.crumbs.push(p.clone().add(new THREE.Vector3(0, 0, 0.05 * k)));
+    this.leaderY = p.y;
+    this.party.forEach((m, i) => { m.sprite.group.position.copy(i === 0 ? p : this.crumbAt(i * FOLLOW_GAP)); m.sprite.play('idle'); });
+  }
+  // 자취를 따라 거리 d만큼 뒤의 지점
+  crumbAt(d) {
+    const c = this.crumbs; let acc = 0;
+    for (let i = 1; i < c.length; i++) {
+      const seg = c[i - 1].distanceTo(c[i]);
+      if (acc + seg >= d) return c[i - 1].clone().lerp(c[i], (d - acc) / (seg || 1));
+      acc += seg;
+    }
+    return c[c.length - 1].clone();
+  }
+  // 실수 좌표(타일 단위)에 캐릭터가 설 수 있는지: 몸통 사각형 네 귀퉁이가 들어간 칸 검사
+  canStand(x, y) {
+    const R = 0.24, cx = this.px, cy = this.py;
+    for (const [ox, oy] of [[0, 0], [-R, -R], [R, -R], [-R, R], [R, R]]) {
+      const tx = Math.round(x + ox), ty = Math.round(y + oy);
+      if (tx === cx && ty === cy) continue;
+      const fromX = Math.round(x), fromY = Math.round(y);
+      if (this.blockedAt(tx, ty, cx, cy)) return false;
+      if ((fromX !== cx || fromY !== cy) && (tx !== fromX || ty !== fromY) && this.blockedAt(tx, ty, fromX, fromY)) return false;
+    }
+    return true;
   }
 
   blockedAt(x, y, fx, fy) {
@@ -188,13 +217,48 @@ export class FieldScene {
     if (this.busy) return true;
     if (k === 'menu' || k === 'cancel') { this.openMenu(); return true; }
     if (k === 'ok') {
-      const [dx, dy] = DIRS[this.dir];
-      const th = this.things.get((this.px + dx) + ',' + (this.py + dy));
-      if (th && !this.moving) this.interact(th);
+      const th = this.thingInFront();
+      if (th) { this.path = null; this.interact(th); }
       return true;
     }
     if (DIRS[k]) { this.path = null; this.pending = null; }
     return false;
+  }
+
+  // 드래그 = 가상 조이스틱, 짧은 탭 = 탭 이동/조사
+  bindPointer() {
+    const cv = this.stage.renderer.domElement;
+    const joy = this.joy = { active: false, x: 0, y: 0, id: null, sx: 0, sy: 0 };
+    const base = this.joyEl = el('div', 'joy'); base.innerHTML = '<div class="joy-knob"></div>'; base.hidden = true;
+    root().appendChild(base);
+    const R = 56;
+    const down = e => {
+      if (joy.id !== null || this.busy || input.stack.length) return;
+      joy.id = e.pointerId; joy.sx = e.clientX; joy.sy = e.clientY; joy.active = false; joy.x = joy.y = 0;
+      try { cv.setPointerCapture(e.pointerId); } catch (_) { /* 무시 */ }
+    };
+    const move = e => {
+      if (e.pointerId !== joy.id) return;
+      const dx = e.clientX - joy.sx, dy = e.clientY - joy.sy, d = Math.hypot(dx, dy);
+      if (!joy.active && d > 14) {
+        joy.active = true; base.hidden = false;
+        base.style.left = joy.sx + 'px'; base.style.top = joy.sy + 'px';
+      }
+      if (joy.active) {
+        const k = Math.min(1, d / R);
+        joy.x = d ? dx / d * k : 0; joy.y = d ? dy / d * k : 0;
+        base.firstChild.style.transform = `translate(${joy.x * R}px, ${joy.y * R}px)`;
+      }
+    };
+    const up = e => {
+      if (e.pointerId !== joy.id) return;
+      const wasJoy = joy.active;
+      joy.id = null; joy.active = false; joy.x = joy.y = 0; base.hidden = true;
+      if (!wasJoy) this.onPointer(e);
+    };
+    cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move);
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    this.unbindPointer = () => { cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move); cv.removeEventListener('pointerup', up); cv.removeEventListener('pointercancel', up); };
   }
 
   onPointer(e) {
@@ -225,14 +289,14 @@ export class FieldScene {
     if (th) {
       // 인접 칸까지 이동 후 조사
       const adj = Object.values(DIRS).map(([dx, dy]) => [tx + dx, ty + dy]).filter(([x, y]) => (x === this.px && y === this.py) || !this.blockedAt(x, y));
-      if (adj.some(([x, y]) => x === this.px && y === this.py)) { this.face(tx - this.px, ty - this.py); this.interact(th); return; }
+      if (Math.hypot(tx - this.fpos.x, ty - this.fpos.y) < 1.45) { this.face(tx - this.fpos.x, ty - this.fpos.y); this.interact(th); return; }
       let bestPath = null;
       for (const [x, y] of adj) { const p = this.findPath(x, y); if (p && (!bestPath || p.length < bestPath.length)) bestPath = p; }
-      if (bestPath) { this.path = bestPath; this.pending = { th, x: tx, y: ty }; }
+      if (bestPath) { this.path = [[this.px, this.py], ...bestPath]; this.pending = { th, x: tx, y: ty }; }
       return;
     }
     const p = this.findPath(tx, ty);
-    if (p) { this.path = p; this.pending = null; }
+    if (p) { this.path = [[this.px, this.py], ...p]; this.pending = null; }
   }
 
   findPath(tx, ty) {
@@ -258,27 +322,46 @@ export class FieldScene {
   }
 
   face(dx, dy) {
-    this.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
+    if (!dx && !dy) return;
+    this.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    this.faceV = { x: dx, y: dy };
     faceDir(this.party[0].sprite, dx, dy);
   }
+  thingInFront() {
+    const f = this.faceV || { x: DIRS[this.dir][0], y: DIRS[this.dir][1] };
+    const fl = Math.hypot(f.x, f.y) || 1;
+    let best = null, bs = -1e9;
+    for (const [key, th] of this.things) {
+      const [tx, ty] = key.split(',').map(Number);
+      const dx = tx - this.fpos.x, dy = ty - this.fpos.y, d = Math.hypot(dx, dy);
+      if (d > 1.45) continue;
+      const dot = (dx * f.x + dy * f.y) / (fl * (d || 1));
+      if (d > 0.3 && dot < 0.35) continue;
+      const score = dot - d;
+      if (score > bs) { bs = score; best = th; }
+    }
+    return best;
+  }
 
-  tryStep(dx, dy) {
-    this.face(dx, dy);
-    const nx = this.px + dx, ny = this.py + dy;
-    if (this.blockedAt(nx, ny, this.px, this.py)) return false;
-    this.trail.unshift({ x: this.px, y: this.py });
-    this.trail.length = Math.min(this.trail.length, 4);
-    const from = this.party.map(m => m.sprite.group.position.clone());
-    const to = [this.dio.toWorld(nx, ny), ...this.trail.slice(0, this.party.length - 1).map(t => this.dio.toWorld(t.x, t.y))];
-    this.px = nx; this.py = ny;
-    this.moving = { t: 0, from, to };
-    this.party.forEach((m, i) => {
-      m.sprite.play('walk', { restart: false });
-      const d = to[i].x - from[i].x;
-      const dz = to[i].z - from[i].z;
-      if (Math.abs(d) > 0.01 || Math.abs(dz) > 0.01) faceDir(m.sprite, Math.abs(d) > 0.01 ? Math.sign(d) : 0, Math.abs(dz) > 0.01 ? Math.sign(dz) : 0);
-    });
-    return true;
+  // 연속 이동 (타일 단위 실수 좌표). 반환: 실제 이동량
+  moveBy(vx, vy, dt) {
+    const sp = WALK_SPEED * dt;
+    const f = this.fpos;
+    let moved = 0;
+    const nx = f.x + vx * sp;
+    if (vx && this.canStand(nx, f.y)) { moved += Math.abs(nx - f.x); f.x = nx; }
+    else if (vx && !vy) { const c = Math.round(f.y) - f.y; if (Math.abs(c) > 0.02 && Math.abs(c) < 0.48 && this.canStand(f.x + Math.sign(vx) * 0.5, Math.round(f.y))) { const s2 = Math.sign(c) * Math.min(Math.abs(c), sp); f.y += s2; moved += Math.abs(s2); } }
+    const ny = f.y + vy * sp;
+    if (vy && this.canStand(f.x, ny)) { moved += Math.abs(ny - f.y); f.y = ny; }
+    else if (vy && !vx) { const c = Math.round(f.x) - f.x; if (Math.abs(c) > 0.02 && Math.abs(c) < 0.48 && this.canStand(Math.round(f.x), f.y + Math.sign(vy) * 0.5)) { const s2 = Math.sign(c) * Math.min(Math.abs(c), sp); f.x += s2; moved += Math.abs(s2); } }
+    // 칸이 바뀌면 칸 단위 게임 로직 (출구/조우/저장)
+    const tx = Math.round(f.x), ty = Math.round(f.y);
+    if (tx !== this.px || ty !== this.py) {
+      this.trail.unshift({ x: this.px, y: this.py }); this.trail.length = Math.min(this.trail.length, 4);
+      this.px = tx; this.py = ty;
+      this.arrive();
+    }
+    return moved;
   }
 
   async arrive() {
@@ -409,23 +492,52 @@ export class FieldScene {
   update(dt) {
     this.t += dt;
     const blocked = this.busy || input.stack.length > 0;
-    if (this.moving) {
-      const mv = this.moving;
-      mv.t += dt / STEP_TIME;
-      const k = Math.min(1, mv.t);
-      this.party.forEach((m, i) => { if (mv.to[i]) m.sprite.group.position.lerpVectors(mv.from[i], mv.to[i], k); });
-      if (k >= 1) { this.moving = null; this.arrive(); }
-    }
-    if (!this.moving && !blocked) {
-      let d = null;
-      for (const k of ['up', 'down', 'left', 'right']) if (input.held.has(k)) { d = k; break; }
-      if (d) { this.path = null; this.pending = null; if (!this.tryStep(...DIRS[d])) { this.face(...DIRS[d]); } }
-      else if (this.path && this.path.length) {
-        const [nx, ny] = this.path.shift();
-        if (!this.tryStep(nx - this.px, ny - this.py)) this.path = null;
+    // 입력 벡터: 키보드(대각 포함) / 가상 조이스틱 / 탭 경로
+    let vx = 0, vy = 0;
+    if (!blocked) {
+      if (input.held.has('left')) vx -= 1; if (input.held.has('right')) vx += 1;
+      if (input.held.has('up')) vy -= 1; if (input.held.has('down')) vy += 1;
+      if (this.joy?.active) { vx = this.joy.x; vy = this.joy.y; }
+      const l = Math.hypot(vx, vy); if (l > 1) { vx /= l; vy /= l; }
+      if (l > 0.15) { this.path = null; this.pending = null; }
+      else { vx = vy = 0; }
+      if (!vx && !vy && this.path) {
+        if (!this.path.length) {
+          this.path = null;
+          if (this.pending) { const p = this.pending; this.pending = null; this.face(p.x - this.fpos.x, p.y - this.fpos.y); this.interact(p.th); }
+        } else {
+          const [tx, ty] = this.path[0];
+          const dx = tx - this.fpos.x, dy = ty - this.fpos.y, d = Math.hypot(dx, dy);
+          if (d < WALK_SPEED * dt * 1.2 || d < 0.04) { this.path.shift(); if (!this.path.length && !this.pending) this.path = null; }
+          else { vx = dx / d; vy = dy / d; }
+        }
       }
     }
-    if (!this.moving) for (const m of this.party) if (m.sprite.anim === 'walk') m.sprite.play('idle');
+    let moved = 0;
+    if (vx || vy) {
+      this.face(vx, vy);
+      moved = this.moveBy(vx, vy, dt);
+      if (!moved && this.path) this.path = null;
+    }
+    // 리더 위치 (높이는 부드럽게 따라감 → 계단/턱에서 툭툭 끊기지 않음)
+    const leader = this.party[0].sprite;
+    const groundY = this.dio.standY ? this.dio.standY(this.px, this.py) : this.dio.toWorld(this.px, this.py).y;
+    this.leaderY += (groundY - this.leaderY) * (1 - Math.exp(-dt * 14));
+    leader.group.position.set(this.fpos.x + this.dio.ox, this.leaderY, this.fpos.y + this.dio.oz);
+    if (moved > 0.0005) {
+      const lp = leader.group.position;
+      if (lp.distanceTo(this.crumbs[0]) > 0.04) { this.crumbs.unshift(lp.clone()); if (this.crumbs.length > 160) this.crumbs.length = 160; }
+      leader.play('walk', { restart: false, speed: 1.15 * Math.min(1, Math.hypot(vx, vy)) + 0.2 });
+    } else if (leader.anim === 'walk') leader.play('idle');
+    // 동료: 자취를 따라 일정 간격 유지
+    this.party.forEach((m, i) => {
+      if (!i) return;
+      const want = this.crumbAt(i * FOLLOW_GAP);
+      const g = m.sprite.group.position;
+      const d = want.clone().sub(g);
+      if (d.lengthSq() > 0.00002) { faceDir(m.sprite, Math.abs(d.x) > 0.002 ? d.x : 0, Math.abs(d.z) > 0.002 ? d.z : 0); m.sprite.play('walk', { restart: false }); g.copy(want); }
+      else if (m.sprite.anim === 'walk') m.sprite.play('idle');
+    });
     // NPC 배회
     for (const n of this.npcs) {
       n.sprite.update(dt, this.stage.camera);
@@ -440,7 +552,7 @@ export class FieldScene {
       n.wanderT = 2 + Math.random() * 4;
       const [dx, dy] = Object.values(DIRS)[Math.floor(Math.random() * 4)];
       const nx = n.x + dx, ny = n.y + dy;
-      if (Math.abs(nx - n.home.x) > 2 || Math.abs(ny - n.home.y) > 2 || this.blockedAt(nx, ny, n.x, n.y) || (nx === this.px && ny === this.py) || this.trail.some(t => t.x === nx && t.y === ny)) continue;
+      if (Math.abs(nx - n.home.x) > 2 || Math.abs(ny - n.home.y) > 2 || this.blockedAt(nx, ny, n.x, n.y) || (Math.abs(nx - this.fpos.x) < 1 && Math.abs(ny - this.fpos.y) < 1) || this.party.some(m => Math.abs(m.sprite.group.position.x - this.dio.ox - nx) < 0.8 && Math.abs(m.sprite.group.position.z - this.dio.oz - ny) < 0.8) || this.trail.some(t => t.x === nx && t.y === ny)) continue;
       this.things.delete(n.x + ',' + n.y); n.x = nx; n.y = ny; this.things.set(nx + ',' + ny, { type: 'npc', npc: n });
       n.walk = { t: 0, from: n.sprite.group.position.clone(), to: this.dio.toWorld(nx, ny) };
       faceDir(n.sprite, dx, dy);
@@ -456,7 +568,7 @@ export class FieldScene {
     const p = this.party[0].sprite.group.position;
     const portrait = this.stage.width < this.stage.height;
     const steep = this.map.theme === 'forest';
-    const off = portrait ? new THREE.Vector3(0, steep ? 10 : 8.6, steep ? 9 : 10.2) : new THREE.Vector3(0, steep ? 8.2 : 6.9, steep ? 9 : 10.4);
+    const off = (portrait ? new THREE.Vector3(0, steep ? 10 : 8.6, steep ? 9 : 10.2) : new THREE.Vector3(0, steep ? 8.2 : 6.9, steep ? 9 : 10.4)).multiplyScalar(camZoom(portrait));
     const want = p.clone().add(off);
     if (!this.camPos) this.camPos = want.clone();
     this.camPos.lerp(want, 1 - Math.exp(-dt * 5));
@@ -465,7 +577,8 @@ export class FieldScene {
     // 가림 처리 유니폼 (플레이어 가슴 높이의 화면 좌표/깊이)
     this.stage.camera.updateMatrixWorld();
     const c = p.clone().add(new THREE.Vector3(0, 0.7, 0)).project(this.stage.camera);
-    this.stage.focusOn(p.clone().add(new THREE.Vector3(0, 0.6, 0)), 2.2, 0.28);
+    const zf = camZoom(portrait);
+    this.stage.focusOn(p.clone().add(new THREE.Vector3(0, 0.6, 0)), 2.2 * zf * zf, 0.28 / zf);
     const pr = this.stage.pixelRatio;
     OCCLUSION.uOccPos.value.set((c.x * 0.5 + 0.5) * this.stage.width * pr, (c.y * 0.5 + 0.5) * this.stage.height * pr);
     OCCLUSION.uOccDepth.value = c.z * 0.5 + 0.5 - 0.0005;

@@ -1,4 +1,5 @@
 // 월드맵 씬: 미니어처 대륙 디오라마 + 노드 선택 이동 + 이동 중 인카운터
+import { camZoom } from '../core/view.js';
 import * as THREE from 'three';
 import { WORLD } from '../data/world.js';
 import { ENCOUNTERS } from '../data/maps.js';
@@ -230,7 +231,7 @@ export class WorldScene {
     this.dio.update(this.t); this.theme.motes.update(this.t);
     const p = this.token.group.position;
     const portrait = this.stage.width < this.stage.height;
-    const off = portrait ? new THREE.Vector3(0, 17, 13) : new THREE.Vector3(0, 12, 12.5);
+    const off = (portrait ? new THREE.Vector3(0, 17, 13) : new THREE.Vector3(0, 12, 12.5)).multiplyScalar(camZoom(portrait) / (portrait ? 1.3 : 1));
     const want = p.clone().add(off);
     this.camPos = this.camPos ? this.camPos.lerp(want, 1 - Math.exp(-dt * 3)) : want;
     this.stage.camera.position.copy(this.camPos);

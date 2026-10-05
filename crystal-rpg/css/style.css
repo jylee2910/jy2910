@@ -382,3 +382,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes ciPor { 0%{opacity:0; transform:translateX(-120%) scale(1.15)} 18%{opacity:1; transform:translateX(0) scale(1)} 80%{opacity:1; transform:translateX(18px)} 100%{opacity:0; transform:translateX(60%)} }
 @keyframes ciName { 0%{opacity:0; transform:translate(80px,-50%)} 22%{opacity:1; transform:translate(0,-50%)} 80%{opacity:1; transform:translate(-14px,-50%)} 100%{opacity:0; transform:translate(-80px,-50%)} }
 @media (max-width: 640px) { .cutin { top:18%; height:120px } .cutin .ci-por{height:150px; left:0} .cutin .ci-name span{font-size:24px} .cutin .ci-name{right:4%} }
+
+/* ── 줌 버튼 / 가상 조이스틱 ── */
+.zoom-btn { position: absolute; top: 10px; right: 112px; padding: 8px 12px; font-size: 15px; pointer-events: auto; }
+.joy { position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; pointer-events: none; z-index: 30;
+  background: radial-gradient(circle, rgba(20,40,100,.25) 0 55%, rgba(140,190,255,.18) 56% 100%); border: 2px solid rgba(200,225,255,.55); box-shadow: 0 0 14px rgba(120,170,255,.35); }
+.joy-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #e8f2ff, #6e8fd8 70%, #34508f); border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
