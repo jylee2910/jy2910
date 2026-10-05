@@ -4,6 +4,7 @@ import { MAPS, ENCOUNTERS } from '../data/maps.js';
 import { buildDiorama, applyTheme, makeCrystal, OCCLUSION } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
 import { makeActor, faceDir } from '../gfx/actors.js';
+import { makeMonster, HAS_MONSTER_RIG } from '../gfx/monsters.js';
 import { charSheet, monsterSheet, textureCanvas } from '../art/assets.js';
 import { weaponLook } from '../sys/party.js';
 import { CHARACTERS } from '../data/characters.js';
@@ -74,7 +75,7 @@ export class FieldScene {
     // 보스
     if (m.boss && !flag(m.boss.flag)) {
       const e = ENEMIES[m.boss.enemy];
-      const b = new Billboard(monsterSheet(e.design), { scale: (e.scale || 1) * 0.9 });
+      const b = HAS_MONSTER_RIG(e.design) ? makeMonster(e.design, { scale: (e.scale || 1) * 0.9, baseYaw: 0 }) : new Billboard(monsterSheet(e.design), { scale: (e.scale || 1) * 0.9 });
       b.group.position.copy(this.dio.toWorld(m.boss.x, m.boss.y));
       scene.add(b.group);
       this.bossSprite = b;

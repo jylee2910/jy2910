@@ -5,6 +5,7 @@ import { gainExp, gainAP, weaponLook } from '../sys/party.js';
 import { buildDiorama, applyTheme, arenaMap } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
 import { makeActor, portraitURL, HAS_RIG } from '../gfx/actors.js';
+import { makeMonster, HAS_MONSTER_RIG } from '../gfx/monsters.js';
 import { FX } from '../gfx/fx.js';
 import { charSheet, monsterSheet, iconURL } from '../art/assets.js';
 import { Clock, ease } from '../core/clock.js';
@@ -60,7 +61,7 @@ export class BattleScene {
     const epos = { 1: [[-2.5, 0]], 2: [[-2.2, -0.95], [-2.7, 0.95]], 3: [[-2.0, -1.4], [-2.9, 0.05], [-2.2, 1.45]], 4: [[-1.9, -1.5], [-2.9, -0.5], [-2.0, 0.6], [-3.0, 1.5]] }[n];
     this.battle.enemies.forEach((u, i) => {
       const d = ENEMIES[u.id];
-      const b = new Billboard(monsterSheet(u.design), { scale: d.scale || 1 });
+      const b = HAS_MONSTER_RIG(u.design) ? makeMonster(u.design, { scale: d.scale || 1 }) : new Billboard(monsterSheet(u.design), { scale: d.scale || 1 });
       const [x, z] = d.boss ? [-3.0, -0.2] : epos[i];
       b.home = new THREE.Vector3(x * sx, d.flying ? 0.5 : 0, z * (portrait ? 1.15 : 1));
       b.group.position.copy(b.home);
@@ -124,7 +125,7 @@ export class BattleScene {
     const k = 1 - Math.exp(-realDt * this.camTarget.k);
     this.cam.pos.lerp(this.camTarget.pos, k); this.cam.look.lerp(this.camTarget.look, k);
     this.stage.camera.position.copy(this.cam.pos); this.stage.camera.lookAt(this.cam.look);
-    this.stage.focusOn(this.cam.look.clone().setY(0.6), 3.2, 0.22);
+    this.stage.focusOn(this.cam.look.clone().setY(0.6), this.boss ? 5 : 3.2, 0.22);
     this.ui.positionTags();
     this.updateMarks(this.clock.t + realDt);
   }
@@ -520,9 +521,7 @@ export class BattleScene {
       const last = t.side === 'enemy' && !this.battle.enemies.some(e => e.alive && e !== t);
       if (last || t.boss) {
         // 마무리 일격: 슬로모션 + 줌 + 섬광
-        this.slowmo(0.7, 0.18); this.stage.flash(0xffffff, 0.5);
         this.fx.ringV(pos, 0xffffff, 2.6, 0.5); this.fx.streaks(pos, 0xfff0c0, 20, 3, 0.5);
-        this.camFocus(ts.group.position, 0.55, 9);
       }
     }
   }
@@ -607,7 +606,7 @@ export class BattleScene {
     }
     this.stage.flash(0xffffff, 1);
     this.fx.shatter(this.chest(t), 0x7ef0ff);
-    if (ev.phase.design) s.setSheet(monsterSheet(ev.phase.design));
+    if (ev.phase.design) { if (s.morph) s.morph(ev.phase.design); else s.setSheet(monsterSheet(ev.phase.design)); }
     t.design = ev.phase.design || t.design;
     if (ev.phase.tint) s.glow = 0.4;
     await this.wait(0.3);

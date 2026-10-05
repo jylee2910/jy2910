@@ -52,7 +52,7 @@ export function lathe(pts, c, { phiStart = 0, phiLength = Math.PI * 2, segs = 12
   return mesh(g, toon(c, { side: THREE.DoubleSide }));
 }
 export function at(obj, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) { obj.position.set(x, y, z); obj.rotation.set(rx * D2R, ry * D2R, rz * D2R); return obj; }
-function bone(name, parent, x = 0, y = 0, z = 0) { const b = new THREE.Object3D(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; }
+export function bone(name, parent, x = 0, y = 0, z = 0) { const b = new THREE.Object3D(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; }
 
 // ── 얼굴 데칼 (도트) ──
 // 문자: B 눈썹 E 속눈썹/동공 I 홍채 W 하이라이트 M 입 K 홍조 L 흉터/선
@@ -193,7 +193,7 @@ export function samplePose(anim, t) {
   const root = [lerp(ra[0], rb[0], k), lerp(ra[1], rb[1], k), lerp(ra[2], rb[2], k)];
   const ta = A.tilt || 0, tb = B.tilt || 0;
   const sa = A.smear ?? 0, sb = B.smear ?? 0;
-  return { pose, root, tilt: lerp(ta, tb, k), smear: lerp(sa, sb, k), spin: lerp(A.spin || 0, B.spin || 0, k) };
+  return { pose, root, tilt: lerp(ta, tb, k), smear: lerp(sa, sb, k), spin: lerp(A.spin || 0, B.spin || 0, k), sq: lerp(A.sq || 0, B.sq || 0, k), glow: lerp(A.glow || 0, B.glow || 0, k) };
 }
 
 // 공용 휴머노이드 애니메이션 (무기는 왼손=+x쪽, 캐릭터 정면 +z)
@@ -360,14 +360,14 @@ export class RigSprite {
 //  RigBillboard: Billboard와 같은 API (play/update/flash/offset/flipped/setAlpha)
 // ─────────────────────────────────────────────────────────────
 export class RigBillboard {
-  constructor(rig, { size = 128, viewW, scale = 1, anims = HUMAN_ANIMS, baseYaw = -62, shadow = true, centerY } = {}) {
+  constructor(rig, { size = 128, viewW, scale = 1, anims = HUMAN_ANIMS, baseYaw = -62, shadow = true, centerY, bodyW, bodyH } = {}) {
     this.rig = rig;
     this.anims = anims;
     this.scale = scale;
     this.sprite = new RigSprite(rig, { w: size, h: size, viewW: viewW || size / PX, centerY });
     this.group = new THREE.Group();
     const W = this.sprite.viewW * scale, H = this.sprite.viewH * scale;
-    this.width = W * 0.5; this.height = H * 0.78;
+    this.width = bodyW ? bodyW * scale : W * 0.5; this.height = bodyH ? bodyH * scale : H * 0.78;
     const geo = new THREE.PlaneGeometry(W, H);
     geo.translate(0, H / 2 - (this.sprite.viewH / 2 - this.sprite.anchorY) * scale, 0);
     this.mat = new THREE.MeshLambertMaterial({ map: this.sprite.texture, alphaTest: 0.5, transparent: false, side: THREE.DoubleSide });
@@ -408,6 +408,12 @@ export class RigBillboard {
     if (onEnd && a.loop) { this.onEnd = null; onEnd(); }
   }
   flash(dur = 0.12, color = 0xffffff) { this.flashT = dur; this.flashColor.set(color); }
+  // 다른 리그로 교체 (보스 2페이즈 변신 등)
+  swapRig(rig, anims) {
+    this.sprite.scene.remove(this.rig.root); this.sprite.scene.add(rig.root);
+    this.sprite.rig = rig; this.rig = rig; if (anims) this.anims = anims;
+    this.play('idle');
+  }
   // 현재 프레임 복사 (잔상용)
   snapshot() {
     const r = RENDERER; if (!r) return null;
@@ -455,6 +461,7 @@ export class RigBillboard {
       sp.bone.userData.spring = true;
       sp.bone.rotation.x = sp.val;
     }
+    if (rig.squashBone) { const q = s.sq || 0; rig.squashBone.scale.set(1 + q * 0.55, 1 - q, 1 + q * 0.55); }
     for (const fn of rig.extraUpdate) fn(dt, t, s);
     // 휘두르기 잔상
     if (rig.smear) { rig.smear.visible = s.smear > 0.05; rig.smear.material.opacity = s.smear * 0.85; }

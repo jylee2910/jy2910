@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { setRigRenderer } from '../js/gfx/rig.js';
 import { makeCharacter } from '../js/gfx/heroes.js';
+import { makeMonster, HAS_MONSTER_RIG } from '../js/gfx/monsters.js';
 const q = new URLSearchParams(location.search), S = +(q.get('s') || 3);
 const r = new THREE.WebGLRenderer(); r.setSize(4, 4); setRigRenderer(r);
 const W = { leon: 'sword', sera: 'staff', kyle: 'sword', rhea: 'spear', bran: 'sword' };
@@ -13,7 +14,7 @@ const ids = (q.get('ids') || 'leon,sera,bran,kyle,rhea').split(',');
 const shots = (q.get('a') || 'idle:0,walk:0.1,attack:0.2,attack:0.42,cast:0.6,hurt:0.1,victory:1.2,ko:0.6').split(',').map(s => s.split(':'));
 for (const id of ids) {
   const row = document.createElement('div'); row.className = 'row'; row.append(id);
-  const bb = makeCharacter(id, W[id] ? { type: W[id] } : null);
+  const bb = HAS_MONSTER_RIG(id) ? makeMonster(id) : makeCharacter(id, W[id] ? { type: W[id] } : null);
   if (q.get('yaw')) bb.baseYaw = +q.get('yaw');
   for (const [a, t] of shots) {
     bb.play(a); bb.curYaw = bb.baseYaw; bb.update(+t, null); bb.time = +t; bb.update(0.0001, null);
