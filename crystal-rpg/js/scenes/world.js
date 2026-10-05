@@ -117,7 +117,7 @@ export class WorldScene {
   enter() {
     if (!this.built) this.build();
     this.stage.setWorld(this.scene);
-    this.stage.setFov(30);
+    this.stage.setFov(30, 1.4);
     this.stage.focus = 0.45; this.stage.applyTilt();
     root().appendChild(this.labels);
     this.labels.innerHTML = '';

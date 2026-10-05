@@ -59,7 +59,7 @@ export const ENEMIES = {
   golem: { name: '수정 골렘', design: 'golem', lv: 13, scale: 0.95, stats: { hp: 500, atk: 30, def: 24, mag: 19, mdf: 10, spd: 7, luk: 3 }, shield: 5,
     weak: ['strike', 'bolt'], resist: ['slash', 'pierce', 'ice'], exp: 150, gold: 80, ap: 5, drops: [{ id: 'crystalShard', chance: 0.6 }],
     actions: [{ use: 'attack', w: 2 }, { use: 'crystalBeam', w: 1 }, { use: 'harden', w: 1 }] },
-  dragon: { name: '수정룡 아스테리온', design: 'dragon', boss: true, final: true, scale: 1.0, lv: 18,
+  dragon: { name: '수정룡 아스테리온', design: 'dragon', boss: true, final: true, scale: 1.35, lv: 18,
     stats: { hp: 2900, atk: 34, def: 20, mag: 30, mdf: 18, spd: 14, luk: 8 }, shield: 8,
     weak: ['bolt', 'strike', 'dark'], resist: ['ice', 'slash'], absorb: [], exp: 0, gold: 0, ap: 0, drops: [],
     actions: [{ use: 'claw', w: 2 }, { use: 'iceBreath', w: 2 }, { use: 'crystalRain', w: 1 }],

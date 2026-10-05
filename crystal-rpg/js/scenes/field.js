@@ -124,7 +124,7 @@ export class FieldScene {
       this.encCount = this.rollEncounter();
     } else this.buildPartySprites(), this.snapParty(true);
     this.stage.setWorld(this.scene);
-    this.stage.setFov(28);
+    this.stage.setFov(28, 1.3);
     this.stage.focus = 0.46;
     this.stage.applyTilt();
     this.camPos = null;
@@ -452,7 +452,7 @@ export class FieldScene {
     const p = this.party[0].sprite.group.position;
     const portrait = this.stage.width < this.stage.height;
     const steep = this.map.theme === 'forest';
-    const off = portrait ? new THREE.Vector3(0, steep ? 12 : 10.5, steep ? 10.5 : 12) : new THREE.Vector3(0, steep ? 8.2 : 6.9, steep ? 9 : 10.4);
+    const off = portrait ? new THREE.Vector3(0, steep ? 10 : 8.6, steep ? 9 : 10.2) : new THREE.Vector3(0, steep ? 8.2 : 6.9, steep ? 9 : 10.4);
     const want = p.clone().add(off);
     if (!this.camPos) this.camPos = want.clone();
     this.camPos.lerp(want, 1 - Math.exp(-dt * 5));

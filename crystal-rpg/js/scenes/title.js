@@ -25,9 +25,9 @@ export class TitleScene {
     scene.add(this.dio.group);
     this.fx = new FX(scene, this.stage);
     const hero = new Billboard(charSheet('leon', { type: 'sword' }));
-    hero.group.position.copy(this.dio.toWorld(11, 11)); scene.add(hero.group);
+    hero.group.position.copy(this.dio.toWorld(12, 12)); scene.add(hero.group);
     const sera = new Billboard(charSheet('sera', { type: 'staff', tint: { G: 'green', g: 'greenS', W: 'greenL' } }));
-    sera.group.position.copy(this.dio.toWorld(12, 11)).add(new THREE.Vector3(0, 0, 0.3)); scene.add(sera.group);
+    sera.group.position.copy(this.dio.toWorld(13, 12)).add(new THREE.Vector3(0, 0, 0.3)); scene.add(sera.group);
     this.sprites = [hero, sera];
     if (this.mode === 'ending') { hero.play('victory'); sera.play('victory'); }
     this.stage.setWorld(scene);

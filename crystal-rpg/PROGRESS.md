@@ -63,6 +63,19 @@ tools/export.html     생성 에셋 미리보기/PNG 저장
   - 게시 방법: index.html에서 doctype/html/head/body 태그를 뺀 페이지 + js/·css/ 파일을 files로 함께 게시 (같은 URL로 재게시)
   - 검증: 스크립트로 새 게임→대화→상자→인카운터→월드 이동 전투→상점→숲 보스→수정룡 페이즈→엔딩까지 오류 없이 통과
 
+## v2 그래픽 개편 (2차 요청: 멈춤 수정 + 스팀급 그래픽)
+- 멈춤 원인 수정: 철벽/도발(guard 애니에 hit 프레임 없음)로 전투 대기 영구 정지 → Billboard가 대기 콜백을 절대 버리지 않게.
+  메인 루프 try/catch, 씬 진입 시 compileAsync 선컴파일, DOM에서 사라진 메뉴 핸들러 자동 정리(input.prune).
+- stage.js: 틸트시프트 → 깊이 텍스처 기반 DOF(SceneDofPass, 앞/뒤 흐림), 스플릿톤 그레이딩, 그레인. stage.focusOn(pos)로 초점.
+- diorama.js v2: maps에 heights(숫자 문자열, 1단계=0.5) → 병합 지형 메시(절벽 옆면, 정점 AO, 자연 모서리 흔들림),
+  계단 타일 's'(±1단계 연결, dio.canMove), 스플랫 지면 셰이더(풀/흙/모래/꽃 도트 경계 혼합), 흔들리는 풀·꽃·나무(WIND),
+  활엽수 'T'/침엽수 't'/덤불 'u'/바위 'o', 소품(type:'prop', kind: barrel crate sack pot bench cart banner hay woodpile stall flowerbed stoneFence pillar),
+  집 v2(기초/골조/창/덧문/화분/차양/굴뚝 연기), 구름·먼 산·종유석·빛줄기, 물 노멀맵 셰이더.
+- 캐릭터 v2: js/art/chars2.data.js (48px, 머리/몸통/다리/팔/흔들림 파츠, 셀아웃 외곽선). generate.js composeChar2/makeCharSheet2.
+  확인 페이지: tools/char-lab.html, tools/mon-lab.html
+- 몬스터: EPX(Scale2x)로 2배 고해상도 + 셀아웃. 수정룡은 스크래치 스크립트(도형+자동 셰이딩)로 만든 네이티브 원본(MONSTER_SHAPES.dragon2).
+- 맵 재설계: 마을(3단 테라스+계단+광장 노점), 이끼 숲(4단 오르막), 수정 동굴(3단), 월드맵(북쪽 산악 높이, 해안 절벽), 전투 아레나(뒤쪽 고지대).
+
 ## 다음에 할 만한 것 (선택)
 - 실기기(휴대폰) 성능 확인: 느리면 Stage의 pixelRatio/그림자 맵 크기(2048)/블룸 해상도 하향
 - 밸런스는 시뮬레이터(단순 AI) 기준: 파수꾼 Lv6 승률≈98%, 수정룡 Lv13 승률≈62%. 실제 플레이 후 ENEMY_DMG·보스 HP 조정

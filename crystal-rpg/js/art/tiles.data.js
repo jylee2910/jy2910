@@ -43,7 +43,7 @@ export const TILE_RECIPES = {
   leaves2: { size: 32, fill: 'green', pattern: 'patches', cell: 6, dark: 'greenS', light: 'greenL', darker: 'grassD', t0: 0.25, t1: 0.42, t2: 0.62, noise: [['mossL', 0.04]] },
   pineTex: { size: 32, fill: 'pine', pattern: 'patches', cell: 5, dark: 'pineS', light: 'pineL', darker: 'pineD', t0: 0.25, t1: 0.42, t2: 0.7 },
   barkTex: { size: 32, fill: 'wood', pattern: 'vstripes', line: 'woodS', noise: [['earthD', 0.1], ['woodL', 0.06]] },
-  stoneFloor2: { size: 32, fill: 'stone', pattern: 'cobble', stones: 13, mortar: 'stoneD', shade: 'stoneS', hi: 'stoneL', shades: ['stone', 'stoneL', 'stone', 'sandS'], noise: [['stoneS', 0.05], ['moss', 0.02]] },
+  stoneFloor2: { size: 32, fill: 'stone', pattern: 'cobble', stones: 13, mortar: 'stoneD', shade: 'stoneS', hi: 'stoneL', shades: ['stone', 'stoneL', 'stone', 'stoneS'], noise: [['stoneS', 0.05], ['moss', 0.02]] },
   planks2: { size: 32, fill: 'wood', pattern: 'planks', ph: 8, line: 'woodS', shades: ['wood', 'woodL', 'wood', 'earthL'], noise: [['woodS', 0.05]] },
   caveFloor2: { size: 32, fill: 'caveRock', pattern: 'patches', cell: 8, dark: 'caveRockS', light: 'caveRockL', noise: [['caveRockS', 0.06]], sprinkle: [{ shape: 'pebble', color: 'caveRockL', shade: 'caveRockS', count: 6 }, { shape: 'speck', color: 'crystal', count: 3 }] },
   altar2: { size: 32, fill: 'stoneL', pattern: 'tiles', cell: 16, mortar: 'stoneS', shades: ['stoneL', 'stone'], sprinkle: [{ shape: 'rune', color: 'crystal', count: 1 }] },

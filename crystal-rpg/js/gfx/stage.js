@@ -24,7 +24,7 @@ class SceneDofPass extends Pass {
     this.material = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `
+      fragmentShader: /* glsl */`
         uniform sampler2D tColor; uniform sampler2D tDepth; uniform float near, far, focus, range, strength, maxR, enabled; uniform vec2 texel;
         varying vec2 vUv;
         float lin(float d){ float z = d * 2.0 - 1.0; return 2.0 * near * far / (far + near - z * (far - near)); }
@@ -34,7 +34,7 @@ class SceneDofPass extends Pass {
           if (enabled < 0.5) { gl_FragColor = base; return; }
           float c = coc(vUv);
           vec3 acc = base.rgb; float wsum = 1.0;
-          const int N = 20;
+          const int N = ${stage.mobile ? 12 : 20};
           for (int i = 0; i < N; i++) {
             float fi = float(i);
             float r = sqrt((fi + 0.5) / float(N));
@@ -150,11 +150,11 @@ export class Stage {
     this.composer.setSize(w, h);
     this.camera.aspect = w / h;
     // 세로 화면에서는 화각을 넓혀 디오라마가 잘리지 않게
-    this.camera.fov = this.baseFov ? (this.camera.aspect < 1 ? this.baseFov * Math.min(1.7, 1 / this.camera.aspect * 0.95) : this.baseFov) : 30;
+    this.camera.fov = this.baseFov ? (this.camera.aspect < 1 ? this.baseFov * Math.min(this.maxFovMul || 1.7, 1 / this.camera.aspect * 0.95) : this.baseFov) : 30;
     this.camera.updateProjectionMatrix();
   }
 
-  setFov(f) { this.baseFov = f; this.resize(); }
+  setFov(f, maxMul = 1.7) { this.baseFov = f; this.maxFovMul = maxMul; this.resize(); }
   // 이전 API 호환 (틸트시프트 → 깊이 DOF로 대체)
   applyTilt() {}
   setFocus(dist, range = 2.0, strength = 0.3) { this.dof.focus = dist; this.dof.range = range; this.dof.strength = strength; }
