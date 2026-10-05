@@ -61,6 +61,7 @@ export class BattleUI {
         <div class="pv"><div class="hpn"></div><div class="hpb"></div></div><div class="pv mp"><div class="mpn"></div><div class="mpb"></div></div>`;
       this.status.appendChild(r);
       this.rows[u.id] = r;
+      r.addEventListener('click', e => { e.stopPropagation(); this.onRowPick?.(u); });
       this.updateUnit(u, u.hp, u.mp);
     }
   }
@@ -218,43 +219,53 @@ export class BattleUI {
     else if (ab.target === 'self') { ok(u); return; }
     if (!pool.length) { sfx('buzz'); return; }
     const all = ab.target === 'enemies' || ab.target === 'allies';
-    if (this.menu) this.menu.setActive(false);
-    let i = 0;
-    const last = this.lastTarget && pool.includes(this.lastTarget) ? pool.indexOf(this.lastTarget) : 0;
-    i = last;
+    const prevMenu = this.menu;
+    if (prevMenu) prevMenu.setActive(false);
+    let i = this.lastTarget && pool.includes(this.lastTarget) ? pool.indexOf(this.lastTarget) : 0;
+    // 대상 목록 창: 이름 + HP, 탭 한 번으로 결정
+    const panel = win('cmd target-panel', this.cmdBox);
+    panel.appendChild(el('div', 'wtitle', `${esc(ab.name)} — 대상 선택`));
+    const items = all ? [{ label: `<b>${pool[0].side === 'enemy' ? '적 전체' : '아군 전체'}</b> (${pool.length})`, data: -1 }]
+      : pool.map((t, k) => ({ label: `<b>${esc(t.name)}</b>`, right: t.side === 'enemy' ? '' : `HP ${t.hp}/${t.maxhp}`, data: k,
+        iconURL: t.side === 'party' ? iconURL('face_' + t.id) : null, icon: t.side === 'party' ? 'x' : (t.broken ? 'star' : null) }));
+    let done = false;
     const show = () => {
       this.tgtUnit = all ? null : pool[i];
       this.targetCursor.hidden = all;
       this.scene.highlight(all ? pool : [pool[i]]);
+      for (const [id, r] of Object.entries(this.rows)) r.classList.toggle('targeted', (all ? pool : [pool[i]]).some(t => t.side === 'party' && t.id === id));
       const t = pool[i];
       const info = t.side === 'enemy' ? this.enemyInfo(t) : `${esc(t.name)}  HP ${t.hp}/${t.maxhp}`;
       this.showHelp(all ? `<b>${esc(ab.name)}</b> → 전체` : `<b>${esc(ab.name)}</b> → ${info}`);
       this.positionTags();
     };
-    const cancelBtn = el('button', 'win back-btn', '◀ 취소');
-    const okBtn = el('button', 'win ok-btn', '결정');
-    const finish = (target) => {
-      input.remove(h); this.scene.onPick = null; cancelBtn.remove(); okBtn.remove();
+    const finish = target => {
+      if (done) return; done = true;
+      menu.destroy(); panel.remove(); this.scene.onPick = null; this.onRowPick = null;
+      for (const r of Object.values(this.rows)) r.classList.remove('targeted', 'pickable');
       this.targetCursor.hidden = true; this.tgtUnit = null; this.scene.highlight([]);
-      if (target) { this.lastTarget = target; sfx('ok'); ok(target); } else { sfx('cancel'); back(); }
+      if (prevMenu) prevMenu.setActive(true);
+      if (target) { this.lastTarget = target; ok(target); } else { sfx('cancel'); back(); }
     };
-    const h = input.push({ onKey: k => {
-      if (k === 'left' || k === 'up') { i = (i - 1 + pool.length) % pool.length; sfx('cursor'); show(); }
-      else if (k === 'right' || k === 'down') { i = (i + 1) % pool.length; sfx('cursor'); show(); }
-      else if (k === 'ok') finish(pool[i]);
-      else if (k === 'cancel') finish(null);
-      return true;
-    } });
-    // 터치: 스프라이트를 탭하면 선택, 같은 대상을 다시 탭하면 확정
+    const menu = new ListMenu(panel, items, {
+      index: all ? 0 : i, cls: 'big',
+      onFocus: it => { if (it.data >= 0) i = it.data; show(); },
+      onSelect: it => finish(all ? pool[0] : pool[it.data]),
+      onCancel: () => finish(null),
+    });
+    this.menu = menu;
+    // 스프라이트 탭: 다른 대상이면 선택, 같은 대상이면 결정
     this.scene.onPick = unit => {
       if (!unit) return;
       const k = pool.indexOf(unit);
       if (k < 0) return;
-      if (all || k === i) finish(pool[i]); else { i = k; sfx('cursor'); show(); }
+      if (all || k === i) { sfx('ok'); finish(pool[i]); } else { i = k; menu.focus(k); }
     };
-    cancelBtn.onclick = e => { e.stopPropagation(); finish(null); };
-    okBtn.onclick = e => { e.stopPropagation(); finish(pool[i]); };
-    this.cmdBox.appendChild(cancelBtn); this.cmdBox.appendChild(okBtn);
+    // 파티 상태창 행 탭
+    for (const [id, r] of Object.entries(this.rows)) r.classList.toggle('pickable', pool.some(t => t.side === 'party' && t.id === id));
+    this.onRowPick = unit => { const k = pool.indexOf(unit); if (k < 0) return; if (all || k === i) { sfx('ok'); finish(pool[i]); } else { i = k; menu.focus(k); } };
+    const back2 = el('button', 'win back-btn', '◀ 취소'); back2.onclick = e => { e.stopPropagation(); finish(null); };
+    panel.appendChild(back2);
     show();
   }
 

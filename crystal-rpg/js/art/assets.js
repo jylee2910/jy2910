@@ -59,7 +59,10 @@ export function iconCanvas(name) {
 }
 
 // CSS/IMG용 dataURL (UI에서 사용)
+export let portraitHook = null; // (id) => dataURL | null  — 3D 리그 초상화
+export function setPortraitHook(f) { portraitHook = f; }
 export function iconURL(name) {
+  if (portraitHook && name.startsWith('face_')) { const u = portraitHook(name.slice(5)); if (u) return u; }
   return memo('url:' + name, () => iconCanvas(name).toDataURL());
 }
 export function weaponIconURL(type, tint) {

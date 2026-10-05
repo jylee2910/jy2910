@@ -43,7 +43,7 @@ export class ListMenu {
     this.el.innerHTML = '';
     this.nodes = items.map((it, i) => {
       const n = el('div', 'mi' + (it.disabled ? ' dis' : '') + (it.header ? ' hdr' : '') + (it.cls ? ' ' + it.cls : ''));
-      n.innerHTML = (it.icon ? `<img class="ic" src="${it.iconURL || iconURL(it.icon)}" alt="">` : '') +
+      n.innerHTML = (it.icon || it.iconURL ? `<img class="ic" src="${it.iconURL || iconURL(it.icon)}" alt="">` : '') +
         `<span class="lb">${it.label}</span>` + (it.right !== undefined ? `<span class="rt">${it.right}</span>` : '') +
         (it.sub ? `<div class="sub">${it.sub}</div>` : '');
       if (it.header) { this.el.appendChild(n); return n; }

@@ -6,6 +6,7 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { setRigRenderer } from './rig.js';
 
 // 씬을 깊이 텍스처가 있는 자체 타깃에 그린 뒤, 깊이로 흐림 정도(CoC)를 계산해 합성
 class SceneDofPass extends Pass {
@@ -121,6 +122,7 @@ export class Stage {
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.08;
     container.appendChild(r.domElement);
+    setRigRenderer(r);
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.5, 200);

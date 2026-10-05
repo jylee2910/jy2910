@@ -348,3 +348,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .cmd .mi { min-height: 24px; padding-top: 2px; padding-bottom: 2px; }
   .cmd.abil .menu { max-height: 120px; }
 }
+
+/* ── 대상 선택 ── */
+.target-panel { border-color: #ffe08a; box-shadow: 0 0 0 2px var(--win-dark), inset 0 0 0 2px var(--win-dark), inset 0 0 0 3px #ffd070, 0 0 18px rgba(255,210,100,.45); }
+.target-panel .menu.big .mi { min-height: 40px; font-size: 16px; }
+.target-panel .menu.big .mi .ic { width: 28px; height: 28px; }
+.target-panel .menu.big .mi.on { background: linear-gradient(90deg, rgba(255,214,110,.45), rgba(255,214,110,.05)); }
+.target-panel .back-btn { position: static; margin-top: 6px; width: 100%; }
+.prow.pickable { cursor: pointer; }
+.prow.targeted { background: linear-gradient(90deg, rgba(255,214,110,.55), rgba(255,214,110,.08)) !important; box-shadow: inset 0 0 0 2px #ffd070; animation: pulse .5s infinite alternate; }

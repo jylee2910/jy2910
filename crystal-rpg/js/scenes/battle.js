@@ -4,6 +4,7 @@ import { Battle } from '../sys/battle.js';
 import { gainExp, gainAP, weaponLook } from '../sys/party.js';
 import { buildDiorama, applyTheme, arenaMap } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
+import { makeActor } from '../gfx/actors.js';
 import { FX } from '../gfx/fx.js';
 import { charSheet, monsterSheet, iconURL } from '../art/assets.js';
 import { Clock, ease } from '../core/clock.js';
@@ -47,7 +48,7 @@ export class BattleScene {
     const sx = portrait ? 0.62 : 1;
     const ppos = [[2.1 * sx, -1.25], [2.65 * sx, 0.05], [3.2 * sx, 1.35]];
     this.battle.party.forEach((u, i) => {
-      const b = new Billboard(charSheet(CHARACTERS[u.id].design, weaponLook(u.cs)));
+      const b = makeActor(CHARACTERS[u.id].design, weaponLook(u.cs));
       b.home = new THREE.Vector3(ppos[i][0], 0, ppos[i][1]);
       b.group.position.copy(b.home);
       scene.add(b.group);
@@ -103,6 +104,7 @@ export class BattleScene {
     this.stage.renderer.domElement.removeEventListener('pointerdown', this.pointer);
     this.ui.destroy();
     this.clock.clear();
+    for (const [, s] of this.sprites) s.dispose?.();
     this.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
   }
 
@@ -123,10 +125,43 @@ export class BattleScene {
     this.stage.camera.position.copy(this.cam.pos); this.stage.camera.lookAt(this.cam.look);
     this.stage.focusOn(this.cam.look.clone().setY(0.6), 3.2, 0.22);
     this.ui.positionTags();
+    this.updateMarks(this.clock.t + realDt);
   }
 
   highlight(units) {
-    for (const [u, s] of this.sprites) s.glow = units.includes(u) ? 0.6 + Math.sin(performance.now() / 120) * 0.1 : 0.22;
+    this.hl = units;
+    for (const [u, s] of this.sprites) { const on = units.includes(u); s.glow = on ? (s.rig ? 0.16 : 0.5) : (s.rig ? 0.12 : 0.22); s.selGlow = on ? 1 : 0; }
+    // 대상 표시: 발밑 링 + 머리 위 화살표
+    if (!this.marks) this.marks = [];
+    while (this.marks.length < units.length) {
+      const g = new THREE.Group();
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.62, 32), new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; g.add(ring);
+      const inner = new THREE.Mesh(new THREE.CircleGeometry(0.45, 32), new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.18, depthWrite: false, toneMapped: false }));
+      inner.rotation.x = -Math.PI / 2; inner.position.y = 0.035; g.add(inner);
+      const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, 4), new THREE.MeshBasicMaterial({ color: 0xffd070, toneMapped: false }));
+      arrow.rotation.x = Math.PI; g.add(arrow);
+      g.userData = { ring, inner, arrow };
+      this.scene.add(g); this.marks.push(g);
+    }
+  }
+  updateMarks(t) {
+    const hl = this.hl || [];
+    (this.marks || []).forEach((g, i) => {
+      const u = hl[i];
+      g.visible = !!u;
+      if (!u) return;
+      const s = this.sprites.get(u);
+      const col = u.side === 'enemy' ? 0xff6a5a : 0x7cffa8;
+      g.userData.ring.material.color.setHex(col); g.userData.inner.material.color.setHex(col); g.userData.arrow.material.color.setHex(col);
+      g.position.copy(s.group.position).add(new THREE.Vector3(s.offset.x, 0, s.offset.z));
+      const k = 1 + Math.sin(t * 8) * 0.08;
+      g.userData.ring.scale.setScalar(k * (u.boss ? 1.8 : 1)); g.userData.inner.scale.setScalar(k * (u.boss ? 1.8 : 1));
+      g.userData.arrow.position.set(0, s.height * 0.95 + 0.35 + Math.abs(Math.sin(t * 5)) * 0.18, 0);
+      g.userData.arrow.rotation.y = t * 3;
+    });
+    // 대상이 아닌 유닛은 어둡게
+    for (const [u, s] of this.sprites) { const dim = hl.length && !hl.includes(u); s.mat.color.setScalar(dim ? 0.45 : 1); }
   }
 
   onPointer(e) {

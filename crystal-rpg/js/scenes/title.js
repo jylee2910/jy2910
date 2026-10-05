@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { MAPS } from '../data/maps.js';
 import { buildDiorama, applyTheme } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
+import { makeActor } from '../gfx/actors.js';
 import { charSheet } from '../art/assets.js';
 import { G, newGameState, hasSave, loadGame, deleteSave } from '../core/state.js';
 import { ListMenu, el, root, win, say, fade } from '../ui/ui.js';
@@ -24,9 +25,9 @@ export class TitleScene {
     this.dio = buildDiorama(MAPS.town);
     scene.add(this.dio.group);
     this.fx = new FX(scene, this.stage);
-    const hero = new Billboard(charSheet('leon', { type: 'sword' }));
+    const hero = makeActor('leon', { type: 'sword' }); hero.yaw = 25;
     hero.group.position.copy(this.dio.toWorld(12, 12)); scene.add(hero.group);
-    const sera = new Billboard(charSheet('sera', { type: 'staff', tint: { G: 'green', g: 'greenS', W: 'greenL' } }));
+    const sera = makeActor('sera', { type: 'staff', tint: { G: 'green' } }); sera.yaw = -20;
     sera.group.position.copy(this.dio.toWorld(13, 12)).add(new THREE.Vector3(0, 0, 0.3)); scene.add(sera.group);
     this.sprites = [hero, sera];
     if (this.mode === 'ending') { hero.play('victory'); sera.play('victory'); }

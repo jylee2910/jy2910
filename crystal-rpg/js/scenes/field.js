@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { MAPS, ENCOUNTERS } from '../data/maps.js';
 import { buildDiorama, applyTheme, makeCrystal, OCCLUSION } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
+import { makeActor, faceDir } from '../gfx/actors.js';
 import { charSheet, monsterSheet, textureCanvas } from '../art/assets.js';
 import { weaponLook } from '../sys/party.js';
 import { CHARACTERS } from '../data/characters.js';
@@ -84,7 +85,8 @@ export class FieldScene {
       if (n.showIf && !flag(n.showIf)) continue;
       const cs = G.s.roster[n.id];
       const d = CHARACTERS[n.id];
-      const b = new Billboard(charSheet(n.design, d ? weaponLook(cs || { equip: { weapon: d.start.weapon } }) : null));
+      const b = makeActor(n.design, d ? weaponLook(cs || { equip: { weapon: d.start.weapon } }) : null);
+      b.yaw = 0;
       b.group.position.copy(this.dio.toWorld(n.x, n.y));
       b.time = Math.random();
       scene.add(b.group);
@@ -102,12 +104,13 @@ export class FieldScene {
   }
 
   buildPartySprites() {
-    for (const p of this.party) this.scene.remove(p.sprite.group);
+    for (const p of this.party) { this.scene.remove(p.sprite.group); p.sprite.dispose?.(); }
     this.party = [];
     const ids = G.s.party.slice(0, 3);
     ids.forEach((id, i) => {
       const cs = G.s.roster[id];
-      const b = new Billboard(charSheet(CHARACTERS[id].design, weaponLook(cs)));
+      const b = makeActor(CHARACTERS[id].design, weaponLook(cs));
+      b.yaw = 180;
       this.scene.add(b.group);
       this.party.push({ id, sprite: b });
     });
@@ -256,7 +259,7 @@ export class FieldScene {
 
   face(dx, dy) {
     this.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
-    if (dx) this.party[0].sprite.flipped = dx > 0;
+    faceDir(this.party[0].sprite, dx, dy);
   }
 
   tryStep(dx, dy) {
@@ -272,7 +275,8 @@ export class FieldScene {
     this.party.forEach((m, i) => {
       m.sprite.play('walk', { restart: false });
       const d = to[i].x - from[i].x;
-      if (Math.abs(d) > 0.01) m.sprite.flipped = d > 0;
+      const dz = to[i].z - from[i].z;
+      if (Math.abs(d) > 0.01 || Math.abs(dz) > 0.01) faceDir(m.sprite, Math.abs(d) > 0.01 ? Math.sign(d) : 0, Math.abs(dz) > 0.01 ? Math.sign(dz) : 0);
     });
     return true;
   }
@@ -361,7 +365,7 @@ export class FieldScene {
 
   async talk(npc) {
     const s = npc.sprite;
-    s.flipped = npc.x < this.px; // 플레이어 쪽을 바라봄
+    faceDir(s, this.px - npc.x, this.py - npc.y); // 플레이어 쪽을 바라봄
     await npc.def.talk(this.ctx(npc));
   }
 
@@ -439,7 +443,7 @@ export class FieldScene {
       if (Math.abs(nx - n.home.x) > 2 || Math.abs(ny - n.home.y) > 2 || this.blockedAt(nx, ny, n.x, n.y) || (nx === this.px && ny === this.py) || this.trail.some(t => t.x === nx && t.y === ny)) continue;
       this.things.delete(n.x + ',' + n.y); n.x = nx; n.y = ny; this.things.set(nx + ',' + ny, { type: 'npc', npc: n });
       n.walk = { t: 0, from: n.sprite.group.position.clone(), to: this.dio.toWorld(nx, ny) };
-      if (dx) n.sprite.flipped = dx > 0;
+      faceDir(n.sprite, dx, dy);
       n.sprite.play('walk');
     }
     for (const m of this.party) m.sprite.update(dt, this.stage.camera);

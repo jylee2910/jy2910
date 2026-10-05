@@ -4,6 +4,7 @@ import { WORLD } from '../data/world.js';
 import { ENCOUNTERS } from '../data/maps.js';
 import { buildDiorama, applyTheme, makeHouse, makeCrystal } from '../gfx/diorama.js';
 import { Billboard } from '../gfx/billboard.js';
+import { makeActor, faceDir } from '../gfx/actors.js';
 import { charSheet } from '../art/assets.js';
 import { weaponLook } from '../sys/party.js';
 import { CHARACTERS } from '../data/characters.js';
@@ -107,7 +108,8 @@ export class WorldScene {
       this.markers[id] = g;
     }
     const leader = G.s.party[0];
-    this.token = new Billboard(charSheet(CHARACTERS[leader].design, weaponLook(G.s.roster[leader])), { scale: 0.85 });
+    this.token = makeActor(CHARACTERS[leader].design, weaponLook(G.s.roster[leader]));
+    this.token.yaw = 0;
     scene.add(this.token.group);
     this.token.group.position.copy(this.dio.toWorld(WORLD.nodes[this.node].x, WORLD.nodes[this.node].y)).add(new THREE.Vector3(0, 0, 0.5));
     this.labels = el('div', 'wlabels');
@@ -166,7 +168,7 @@ export class WorldScene {
   }
 
   async select(d) {
-    if (d.t === 'menu') { this.closePanel(); openMenu(this.app, () => { this.token.setSheet(charSheet(CHARACTERS[G.s.party[0]].design, weaponLook(G.s.roster[G.s.party[0]]))); this.panel(); }); return; }
+    if (d.t === 'menu') { this.closePanel(); openMenu(this.app, () => { const pos = this.token.group.position.clone(); this.scene.remove(this.token.group); this.token.dispose?.(); this.token = makeActor(CHARACTERS[G.s.party[0]].design, weaponLook(G.s.roster[G.s.party[0]])); this.token.yaw = 0; this.token.group.position.copy(pos); this.scene.add(this.token.group); this.panel(); }); return; }
     if (d.t === 'enter') {
       const n = WORLD.nodes[this.node];
       if (n.lock && !flag(n.lock)) { await say(null, n.lockText); return; }
@@ -191,7 +193,7 @@ export class WorldScene {
     for (let i = startIdx + 1; i < tiles.length; i++) {
       const [x, y] = tiles[i];
       const a = this.token.group.position.clone(), b = this.dio.toWorld(x, y).add(new THREE.Vector3(0, 0, i === tiles.length - 1 ? 0.5 : 0));
-      if (Math.abs(b.x - a.x) > 0.01) this.token.flipped = b.x > a.x;
+      faceDir(this.token, Math.abs(b.x - a.x) > 0.01 ? Math.sign(b.x - a.x) : 0, Math.abs(b.z - a.z) > 0.01 ? Math.sign(b.z - a.z) : 0);
       this.token.play('walk', { restart: false });
       await this.tween(0.14, k => this.token.group.position.lerpVectors(a, b, k));
       if (i % 2 === 0) sfx('step');

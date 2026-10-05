@@ -7,6 +7,8 @@ import { G, newGameState, recruit } from './core/state.js';
 import { newChar } from './sys/party.js';
 import { fade } from './ui/ui.js';
 import { BattleScene } from './scenes/battle.js';
+import { setPortraitHook } from './art/assets.js';
+import { portraitURL, HAS_RIG } from './gfx/actors.js';
 
 export const app = {
   stage: null, scene: null, battleSpeed: 1, playTimer: 0,
@@ -60,6 +62,7 @@ async function boot() {
   window.addEventListener('keydown', unlock);
   await preloadOverrides();
   app.stage = new Stage(document.getElementById('view'));
+  setPortraitHook(id => (HAS_RIG(id) ? portraitURL(id, 'face') : null));
   let last = performance.now();
   let errCount = 0;
   const loop = now => {

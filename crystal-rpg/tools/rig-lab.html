@@ -1,0 +1,32 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>리그 랩</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>body{background:#4a5a7a;margin:8px;font:12px sans-serif;color:#fff} .row{display:flex;gap:4px;align-items:flex-end;margin-bottom:4px} canvas{image-rendering:pixelated;background:#6a8a5a}</style></head>
+<body><div id="o"></div>
+<script type="module">
+import * as THREE from 'three';
+import { setRigRenderer } from '../js/gfx/rig.js';
+import { makeCharacter } from '../js/gfx/heroes.js';
+const q = new URLSearchParams(location.search), S = +(q.get('s') || 3);
+const r = new THREE.WebGLRenderer(); r.setSize(4, 4); setRigRenderer(r);
+const W = { leon: 'sword', sera: 'staff', kyle: 'sword', rhea: 'spear', bran: 'sword' };
+const ids = (q.get('ids') || 'leon,sera,bran,kyle,rhea').split(',');
+const shots = (q.get('a') || 'idle:0,walk:0.1,attack:0.2,attack:0.42,cast:0.6,hurt:0.1,victory:1.2,ko:0.6').split(',').map(s => s.split(':'));
+for (const id of ids) {
+  const row = document.createElement('div'); row.className = 'row'; row.append(id);
+  const bb = makeCharacter(id, W[id] ? { type: W[id] } : null);
+  if (q.get('yaw')) bb.baseYaw = +q.get('yaw');
+  for (const [a, t] of shots) {
+    bb.play(a); bb.curYaw = bb.baseYaw; bb.update(+t, null); bb.time = +t; bb.update(0.0001, null);
+    const sp = bb.sprite, w = sp.w, h = sp.h, buf = new Uint8Array(w * h * 4);
+    r.readRenderTargetPixels(sp.rtB, 0, 0, w, h, buf);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const img = c.getContext('2d').createImageData(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const s = ((h - 1 - y) * w + x) * 4, d = (y * w + x) * 4; for (let k = 0; k < 4; k++) img.data[d + k] = buf[s + k]; }
+    // 선형 → sRGB 근사
+    for (let i = 0; i < img.data.length; i += 4) for (let k = 0; k < 3; k++) img.data[i + k] = Math.pow(img.data[i + k] / 255, 1 / 2.2) * 255;
+    c.getContext('2d').putImageData(img, 0, 0);
+    c.style.width = w * S + 'px'; row.appendChild(c);
+  }
+  document.getElementById('o').appendChild(row);
+}
+</script></body></html>
