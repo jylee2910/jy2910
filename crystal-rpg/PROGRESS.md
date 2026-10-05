@@ -76,11 +76,34 @@ tools/export.html     생성 에셋 미리보기/PNG 저장
 - 몬스터: EPX(Scale2x)로 2배 고해상도 + 셀아웃. 수정룡은 스크래치 스크립트(도형+자동 셰이딩)로 만든 네이티브 원본(MONSTER_SHAPES.dragon2).
 - 맵 재설계: 마을(3단 테라스+계단+광장 노점), 이끼 숲(4단 오르막), 수정 동굴(3단), 월드맵(북쪽 산악 높이, 해안 절벽), 전투 아레나(뒤쪽 고지대).
 
+## v3 캐릭터·연출·조작 개편 (3차 요청)
+- 캐릭터: 도트 시트 대신 **3D 리그 → 도트 스프라이트** 파이프라인 (js/gfx/rig.js).
+  성인 비율 툰 셰이딩 모델을 캐릭터마다 작은 렌더 타깃에 매 프레임 렌더 → 외곽선/내부선 패스 → 빌보드. 1px = 1/50 유닛(PX).
+  키프레임 관절 애니(HUMAN_ANIMS: idle walk attack_slash attack_thrust cast hurt guard victory ko jump dive + skill_heavy skill_spin),
+  스프링 보조 동작(망토·머리카락·스카프), 얼굴 도트 데칼, 방향(yaw) 회전, 휘두르기 잔상(smear).
+  - js/gfx/heroes.js: 영웅 5명 + NPC 정의(HERO_DEFS), 머리 스타일(HAIR), 망토/치마/견갑, 3D 무기(makeWeapon)
+  - js/gfx/monsters.js: 몬스터 리그(슬라임/서리 슬라임/뿔토끼/버섯/환각버섯/늑대/수정 박쥐/불꽃 정령/수정 골렘/고목의 파수꾼/수정룡·2페이즈).
+    sq(찌그러짐) 채널, makeMonster(design).morph(design)로 페이즈 변신. 리그가 없는 디자인은 기존 도트 시트로 자동 대체.
+  - js/gfx/actors.js: makeActor(리그 있으면 리그, 없으면 도트 시트), faceDir, portraitURL(id, 'face'|'bust'|'cut') — UI 얼굴 아이콘도 리그에서 렌더
+  - 확인 페이지: tools/rig-lab.html?ids=leon,dragon&a=idle:0,attack:0.4
+- 기술 연출: 컷인(상반신 초상+기술명 띠, .cutin), 기 모으기, 돌진 잔상(fx.ghost = 렌더 타깃 프레임 복사),
+  도약 내려찍기/회전 베기 모션, 큰 베기(bigSlash/crossSlash)·집중선(streaks)·충격파(shock/ringV),
+  원소별: 화염 기둥(flameBurst), 얼음 결정 솟구침→파쇄(shards), 회오리(tornado), 빛의 창(lightBlades), 암흑 구체(voidOrb), 이중 낙뢰.
+  카메라가 시전자→대상으로 따라가며, 마지막 적 처치 시 슬로모션+줌(afterDeaths).
+- 대상 선택: 대상 목록 창(아이콘+HP) + 발밑 링/머리 위 화살표(적=빨강, 아군=초록) + 비대상 어둡게 + 선택 대상 금색 외곽선 맥동.
+  상태창 줄을 탭해도 아군 선택. **아이템이 첫 번째 캐릭터에게만 들어가던 버그 수정.**
+- 필드 조작: 칸 단위 → **자유 이동**(대각선, 몸통 사각형 충돌, 모서리 미끄러짐 보정, 계단 높이 부드럽게).
+  동료는 리더 자취를 따라감. 모바일: 화면 드래그 = 가상 조이스틱, 짧은 탭 = 그곳으로 이동/조사.
+  🔍 버튼으로 줌 3단계(js/core/view.js, localStorage 기억). 세로 화면 기본값은 한 단계 줌아웃. 월드맵도 같은 설정을 따름.
+- 테스트 URL: ?test=field&map=forest&x=5&y=17 (필드 단독), ?test=battle&foes=dragon&party=kyle,leon,rhea&lv=30&theme=cave
+
 ## 다음에 할 만한 것 (선택)
-- 실기기(휴대폰) 성능 확인: 느리면 Stage의 pixelRatio/그림자 맵 크기(2048)/블룸 해상도 하향
+- 실기기(휴대폰) 성능 확인: 리그 캐릭터는 매 프레임 개별 렌더 타깃을 그림(전투 최대 7개). 느리면 화면 밖/정지 리그는 격프레임 렌더, pixelRatio/그림자 맵/블룸 해상도 하향
+- 월드맵 노드·상점 NPC 등 남은 도트 요소도 리그화 가능 (HERO_DEFS에 정의 추가)
 - 밸런스는 시뮬레이터(단순 AI) 기준: 파수꾼 Lv6 승률≈98%, 수정룡 Lv13 승률≈62%. 실제 플레이 후 ENEMY_DMG·보스 HP 조정
 - 콘텐츠 추가는 data/*.js만 수정: 무기(items.js)→어빌리티(abilities.js)→공명(SYNERGIES)→적(enemies.js)→조우 테이블(maps.js)
 
 ## 메모
+- (v1/v2 도트 시트는 리그가 없는 디자인의 대체용으로 유지)
 - 캐릭터 시트: 32x32 프레임, 행 순서 idle/walk/attack/cast/hurt/guard/victory/ko. 무기 종류별로 공격 모션(slash/thrust)이 달라 시트는 (캐릭터, 무기타입, 틴트)별 캐시.
 - 캐릭터 원본은 왼쪽을, 몬스터 원본은 오른쪽을 바라봄. Billboard.flipped로 반전.
