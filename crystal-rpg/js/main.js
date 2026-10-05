@@ -16,7 +16,9 @@ export const app = {
     input.sceneHandler = null;
     document.getElementById('ui').innerHTML = '';
     this.scene = sc;
-    await sc.enter();
+    try { await sc.enter(); } catch (e) { console.error('[scene enter]', e); }
+    // 셰이더를 미리 컴파일해 첫 프레임 멈춤을 줄인다
+    try { if (this.stage.renderer.compileAsync && this.stage.scene) await Promise.race([this.stage.renderer.compileAsync(this.stage.scene, this.stage.camera), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* 무시 */ }
     await fade(false, fadeMs);
   },
 };
@@ -59,12 +61,16 @@ async function boot() {
   await preloadOverrides();
   app.stage = new Stage(document.getElementById('view'));
   let last = performance.now();
+  let errCount = 0;
   const loop = now => {
+    requestAnimationFrame(loop); // 예외가 나도 루프는 계속
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (app.scene) app.scene.update(dt);
-    if (G.s) G.s.playTime += dt;
-    app.stage.render(dt);
-    requestAnimationFrame(loop);
+    try {
+      if (app.scene) app.scene.update(dt);
+      if (G.s) G.s.playTime += dt;
+      app.stage.render(dt);
+    } catch (e) { if (errCount++ < 5) console.error('[loop]', e); }
+    input.prune();
   };
   requestAnimationFrame(loop);
 

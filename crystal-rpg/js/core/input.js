@@ -12,6 +12,10 @@ export const input = {
   sceneHandler: null, // 스택이 비었을 때
   lastKeyTime: 0,
   push(h) { this.stack.push(h); return h; },
+  // DOM에서 사라진 메뉴의 핸들러가 남아 입력을 막는 일을 방지
+  prune() {
+    for (let i = this.stack.length - 1; i >= 0; i--) { const el = this.stack[i].el; if (el && !el.isConnected) this.stack.splice(i, 1); }
+  },
   remove(h) { const i = this.stack.indexOf(h); if (i >= 0) this.stack.splice(i, 1); },
   get top() { return this.stack[this.stack.length - 1]; },
   dispatch(k) {
@@ -34,5 +38,6 @@ export const input = {
     });
     window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) this.held.delete(k); });
     window.addEventListener('blur', () => this.held.clear());
+    document.addEventListener('visibilitychange', () => this.held.clear());
   },
 };

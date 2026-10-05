@@ -53,8 +53,16 @@ export class Billboard {
   play(name, { onEnd = null, onHit = null, speed = 1, restart = true } = {}) {
     if (!this.sheet.meta.anims[name]) name = 'idle';
     if (!restart && this.anim === name) return;
+    // 이전 애니메이션의 대기 콜백은 버리지 않고 즉시 실행 (전투 진행이 멈추지 않도록)
+    const pendHit = this.onHit, pendEnd = this.onEnd;
+    this.onHit = null; this.onEnd = null;
+    pendHit?.(); pendEnd?.();
     this.anim = name; this.frame = 0; this.time = 0; this.speed = speed;
     this.onEnd = onEnd; this.onHit = onHit; this.hitFired = false;
+    const a = this.sheet.meta.anims[name];
+    // hit 프레임이 없는 애니메이션이면 끝날 때 hit 처리. 반복 애니메이션은 곧바로.
+    if (onHit && a.hit === undefined && a.loop) { this.onHit = null; this.hitFired = true; onHit(); }
+    if (onEnd && a.loop && a.frames <= 1) { this.onEnd = null; onEnd(); }
     this.showFrame();
   }
 
@@ -77,7 +85,11 @@ export class Billboard {
     if (f !== this.frame) {
       if (f >= a.frames) {
         if (a.loop) { this.time = 0; this.frame = 0; }
-        else { this.frame = a.frames - 1; const cb = this.onEnd; this.onEnd = null; if (cb) cb(); }
+        else {
+          this.frame = a.frames - 1;
+          const h = this.onHit; this.onHit = null; if (h) h();
+          const cb = this.onEnd; this.onEnd = null; if (cb) cb();
+        }
       } else this.frame = f;
       if (a.hit !== undefined && !this.hitFired && this.frame >= a.hit) { this.hitFired = true; const h = this.onHit; this.onHit = null; if (h) h(); }
       this.showFrame();

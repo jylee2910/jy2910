@@ -35,7 +35,7 @@ export class ListMenu {
     this.index = opt.index || 0;
     this.active = true;
     this.setItems(items);
-    this.handler = { onKey: k => this.onKey(k), modal: opt.modal !== false };
+    this.handler = { onKey: k => this.onKey(k), modal: opt.modal !== false, el: this.el };
     if (opt.push !== false) input.push(this.handler);
   }
   setItems(items, keepIndex = true) {
@@ -119,11 +119,14 @@ export function say(name, text, opt = {}) {
       if (shown < full.length) { shown = full.length; clearInterval(timer); tx.innerHTML = esc(full).replace(/\n/g, '<br>'); w.classList.add('done'); return; }
       page++;
       if (page < pages.length) { sfx('cursor'); start(); return; }
+      if (closed) return;
+      closed = true; clearInterval(timer);
       input.remove(h); w.remove(); document.removeEventListener('pointerdown', tap, true); resolve();
     };
     const tap = e => { if (e.target.closest('.win') === w || !e.target.closest('.win')) { e.stopPropagation(); e.preventDefault(); advance(); } };
-    const h = input.push({ onKey: k => { if (k === 'ok' || k === 'cancel') advance(); return true; } });
-    setTimeout(() => document.addEventListener('pointerdown', tap, true), 50);
+    let closed = false;
+    const h = input.push({ onKey: k => { if (k === 'ok' || k === 'cancel') advance(); return true; }, el: w });
+    setTimeout(() => { if (!closed) document.addEventListener('pointerdown', tap, true); }, 50);
     start();
   });
 }

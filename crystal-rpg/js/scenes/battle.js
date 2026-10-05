@@ -147,6 +147,15 @@ export class BattleScene {
 
   // ─────────────────────────────────────────────────────────────
   async run() {
+    try { await this.runInner(); } catch (e) {
+      console.error('[battle]', e);
+      // 복구: 전투를 승리 처리하고 빠져나간다 (멈춤 방지)
+      this.battle.writeBack();
+      this.onEnd({ result: this.battle.party.some(p => p.alive) ? 'escape' : 'lose' });
+    }
+  }
+
+  async runInner() {
     const b = this.battle;
     // 인트로
     this.camHomeGo(1.6);
