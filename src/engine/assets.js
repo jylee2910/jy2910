@@ -3,7 +3,7 @@ import * as THREE from 'three';
 const BASE = './assets/';
 
 export const SPRITES = ['kael', 'argen', 'mira', 'nell', 'king', 'soldier', 'm_imp', 'm_crawler', 'm_wolf', 'm_ember', 'm_wyvern', 'echo_paladin', 'echo_saint', 'echo_sage'];
-export const TEXTURES = ['grass', 'grass2', 'forest', 'dirt', 'dirt_dark', 'sand', 'rock', 'cliff', 'cobble', 'castle_floor', 'bricks', 'castle_wall', 'marble', 'carpet', 'wood', 'roof', 'roof_red', 'plaster', 'water_noise', 'noise'];
+export const TEXTURES = ['grass', 'grass2', 'forest', 'dirt', 'dirt_dark', 'sand', 'rock', 'cliff', 'cobble', 'castle_floor', 'bricks', 'castle_wall', 'marble', 'carpet', 'wood', 'roof', 'roof_red', 'plaster', 'water_noise', 'noise', 'bg_mountains', 'bg_mountains_dusk', 'bg_trees', 'bg_trees_far'];
 export const EXTRA = ['fx/fx.json', 'ui/icons.json'];
 
 class Assets {

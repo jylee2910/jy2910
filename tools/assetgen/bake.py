@@ -56,7 +56,7 @@ def jobs_for(name):
             meta.append(("battle", an, len(frames), fps, loop))
             for i, p in enumerate(frames):
                 jobs.append((name, "battle", p, an in ("ko",)))
-    for view in ("down", "up", "left"):
+    for view in (("down", "up", "left") if getattr(cls, "field", True) else ()):
         for an, (fn, fps, loop) in anims.FIELD_ANIMS.items():
             frames = fn(style)
             meta.append((view, an, len(frames), fps, loop))

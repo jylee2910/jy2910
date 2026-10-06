@@ -489,7 +489,169 @@ def spear(B, xf, upright=False):
     B.limb(at(xf, 0, 22, 0), "leather", 30, 0.7, 0.7)
     B.add("cone", at(xf, 0, 22, 0), "blade", ((0, 0, 0), (0, 6.0, 0), 1.6, 0.1))
 
-CAST = {"kael": Kael, "argen": Argen, "mira": Mira, "nell": Nell, "king": King, "soldier": Soldier}
+
+# ========================================================================
+# ECHOES – legendary heroes whose spirits resonate with the party
+# ========================================================================
+
+
+class EchoPaladin:
+    name = "echo_paladin"
+    style = "sword"
+    field = False
+    eye = ramp_explicit("#1a2a4a", "#40a0ff", "#a0e0ff")
+    eye_style = "normal"
+
+    @staticmethod
+    def materials(B):
+        std_mats(B, SKIN_LIGHT)
+        B.mat("hair", Mat(ramp_explicit("#5a4a6a", "#9a8ab0", "#cfc4e2", "#efe8fa", "#ffffff"), spec=0.4, band=0.9))
+        B.mat("plate", Mat(ramp_explicit("#2a3050", "#5a6a90", "#9aacce", "#d6e2f4", "#ffffff"), spec=0.7, shine=20, band=0.9))
+        B.mat("gold", Mat(METAL_GOLD, spec=0.7, shine=16))
+        B.mat("cape", Mat(ramp_explicit("#0a1a4a", "#14307a", "#2450b0", "#4a80e0", "#90c0ff")))
+        B.mat("black", Mat(CLOTH_BLACK))
+        B.mat("blade", Mat(ramp_explicit("#4a5a80", "#8aa0c8", "#c8dcf4", "#f0f8ff", "#ffffff"), spec=0.9, shine=30, emissive=0.3))
+        B.mat("gem", Mat(ramp_explicit("#06203a", "#10508a", "#2a90d8", "#7ad0ff", "#e0f6ff"), spec=0.9, emissive=0.5))
+        B.mat("leather", Mat(LEATHER))
+
+    @staticmethod
+    def build(W, B, o):
+        head(B, W)
+        h = W["head"]
+        # long silver hair
+        B.ell(at(h, 0, 8.8, -0.6), "hair", (8.0, 6.2, 8.0), group="hair", k=1.4)
+        B.ell(at(h, 0, 5.6, -3.0), "hair", (7.8, 7.6, 5.6), group="hair", k=1.4)
+        for a, b, r in [((-3.0, 11.0, 5.0), (-4.8, 5.6, 7.4), 2.2), ((0.5, 11.4, 5.4), (0.8, 6.4, 8.0), 2.1), ((3.6, 10.8, 4.6), (5.4, 5.8, 7.0), 2.0)]:
+            B.cone(h, "hair", a, b, r, 0.4, group="hair", k=1.0)
+        B.cone(at(h, 0, 5.0, -4.8), "hair", (0, 0, 0), (0, -14, -3.0), 6.4, 2.6, group="long", k=1.5)
+        # winged circlet
+        B.add("torus", at(h, 0, 9.6, 0.2, rx=-8), "gold", (7.7, 0.6))
+        for sx in (-1, 1):
+            B.cone(at(h, sx * 7.0, 10.0, 1.0), "gold", (0, 0, 0), (sx * 3.5, 4.0, -3.0), 1.2, 0.2)
+        torso(B, W, "plate", "plate", "plate", chest=(6.4, 6.0, 4.3))
+        B.box(at(W["chest"], 0, 4.0, 4.4), "gold", (1.0, 3.0, 0.6), rr=0.5)
+        B.sph(at(W["chest"], 0, 4.5, 4.9), "gem", 1.3)
+        B.add("cyl", at(W["pelvis"], 0, -4.0, 0), "plate", (5.0, 5.6, 1.0), taper=(-5, 5, 1.3, 0.95), group="skirt", k=0.5)
+        # big cape
+        sw = o.get("scarf", 0.3)
+        B.box(at(W["chest"], 0, -4.0 + sw, -5.0 - sw * 2.5, rx=12 + sw * 15), "cape", (7.5, 13.0, 0.8), rr=0.6, taper=(-13, 13, 1.35, 0.95))
+        for s in ("r", "l"):
+            B.ell(at(W["sh_" + s], 0, 1.0, 0), "plate", (4.2, 3.4, 4.0), order=1)
+            B.ell(at(W["sh_" + s], 0, 2.2, 0), "gold", (3.6, 1.0, 3.6), order=2)
+            arm(B, W, s, "black", "plate", glove="plate", r=(2.4, 2.1, 2.2, 2.0))
+            leg(B, W, s, "black", "plate", "plate", boot_top=2.8)
+        # kite shield on the right arm
+        sh = at(W["el_r"], -1.5, -4.0, 2.5, ry=-70)
+        B.box(at(sh, 0, 0, 0), "plate", (5.5, 7.0, 0.8), rr=0.7, taper=(-7, 7, 0.4, 1.0))
+        B.box(at(sh, 0, 1.0, 0.6), "gold", (1.0, 4.5, 0.4), rr=0.3)
+        B.box(at(sh, 0, 2.5, 0.6), "gold", (3.0, 0.8, 0.4), rr=0.3)
+        if o.get("show_weapon", True):
+            sword_broad(B, weapon_xf(W, o), 26)
+
+
+class EchoSaint:
+    name = "echo_saint"
+    style = "staff"
+    field = False
+    eye = ramp_explicit("#1a3a2a", "#3ac080", "#a0ffd0")
+    eye_style = "big"
+    skeleton = {"sh_r": (-6.0, 6.0, 0), "sh_l": (6.0, 6.0, 0), "hip_r": (-3.1, -1, 0), "hip_l": (3.1, -1, 0)}
+    skscale = 0.96
+
+    @staticmethod
+    def materials(B):
+        std_mats(B, SKIN_PALE)
+        B.mat("hair", Mat(ramp_explicit("#6a4a20", "#a8783a", "#dcb060", "#f6dc98", "#fff8d8"), spec=0.4, band=0.9))
+        B.mat("robe", Mat(CLOTH_WHITE))
+        B.mat("hood", Mat(ramp_explicit("#4a5a7a", "#8a9ab8", "#c0cce0", "#e6ecf6", "#ffffff")))
+        B.mat("gold", Mat(METAL_GOLD, spec=0.6, shine=16))
+        B.mat("green", Mat(ramp_explicit("#06281a", "#0c4a30", "#1a7a4a", "#36aa6a", "#70d898")))
+        B.mat("wood", Mat(ramp_explicit("#4a3a20", "#7a6034", "#aa8a50", "#d4b478", "#f4dcaa")))
+        B.mat("crystal", Mat(ramp_explicit("#0a3a2a", "#1a7a5a", "#3ac090", "#9af0d0", "#ffffff"), spec=0.9, emissive=0.5))
+        B.mat("boot", Mat(CLOTH_WHITE))
+
+    @staticmethod
+    def build(W, B, o):
+        head(B, W, hw=7.3)
+        h = W["head"]
+        B.ell(at(h, 0, 8.6, -0.4), "hair", (8.0, 6.2, 8.0), group="hair", k=1.4)
+        for a, b, r in [((-3.0, 11.0, 5.0), (-4.2, 6.0, 7.6), 2.1), ((0.2, 11.4, 5.4), (0.4, 6.6, 8.2), 2.1), ((3.4, 11.0, 5.0), (4.4, 6.2, 7.4), 2.0), ((-6.6, 8.0, 2.6), (-7.0, -4.0, 3.4), 1.8), ((6.6, 8.0, 2.6), (7.0, -4.0, 3.4), 1.8)]:
+            B.cone(h, "hair", a, b, r, 0.6, group="hair", k=1.0)
+        # hood
+        B.ell(at(h, 0, 8.4, -1.6), "hood", (9.4, 8.6, 9.0), group="hood", k=1.0)
+        B.add("ell", at(h, 0, 5.8, 6.0), "hood", (7.6, 8.4, 7.0), group="hood", op="sub", k=1.0)
+        B.add("box", at(h, 0, -4.0, 0), "hood", ((12, 5, 12), 0.5), group="hood", op="sub")
+        B.add("torus", at(h, 0, 13.0, 0.0, rx=-15), "gold", (3.6, 0.5))  # halo-ish ornament
+        torso(B, W, "robe", "robe", "robe", chest=(5.2, 5.6, 3.8))
+        B.ell(at(W["chest"], 0, 6.4, -0.6), "hood", (7.0, 3.0, 4.8), group="mantle", k=1.0)
+        B.box(at(W["chest"], 0, 0.0, 3.6), "green", (1.2, 6.0, 0.5), rr=0.4)
+        B.add("cyl", at(W["pelvis"], 0, -10.5, 0), "robe", (11.0, 6.6, 1.0), taper=(-11, 11, 1.45, 0.8), group="robe", k=0.5)
+        B.add("cyl", at(W["pelvis"], 0, -20.6, 0), "gold", (0.8, 9.8, 0.4), group="robe", op="paint")
+        B.box(at(W["pelvis"], 0, -9.0, 6.3, rx=-8), "green", (1.6, 9.0, 0.4), rr=0.3)
+        for s in ("r", "l"):
+            arm(B, W, s, "robe", "robe", r=(2.0, 1.9, 1.9, 2.8), hand=1.7)
+            B.limb(at(W["el_" + s], 0, -3.5, 0), "gold", 0.8, 2.9, 2.9, order=2)
+            leg(B, W, s, "robe", "robe", "boot", r=(2.6, 2.1, 2.0, 1.6), boot=(2.0, 1.4, 3.0))
+        if o.get("show_weapon", True):
+            xf = weapon_xf(W, o, grip=1.6)
+            B.limb(at(xf, 0, 22, 0), "wood", 30, 0.8, 0.7)
+            B.add("torus", at(xf, 0, 24.5, 0, rx=90), "gold", (3.4, 0.6))
+            B.ell(at(xf, 0, 24.5, 0), "crystal", (1.8, 2.8, 1.8))
+            for k in range(3):
+                B.cone(at(xf, 0, 22 - k * 0.8, 0, ry=k * 120), "gold", (0, 0, 0), (2.8, 3.6, 0), 0.6, 0.2)
+
+
+class EchoSage:
+    name = "echo_sage"
+    style = "staff"
+    field = False
+    eye = ramp_explicit("#3a2a00", "#ffd040", "#ffffa0")
+    eye_style = "narrow"
+
+    @staticmethod
+    def materials(B):
+        std_mats(B, SKIN_WARM)
+        B.mat("hair", Mat(ramp_explicit("#2a2a3a", "#5a5a6e", "#9a9aae", "#d0d0de", "#f6f6ff")))
+        B.mat("robe", Mat(ramp_explicit("#08061a", "#140f34", "#221a54", "#342a7a", "#4c42a2")))
+        B.mat("hat", Mat(ramp_explicit("#0a0814", "#18122c", "#2a2048", "#3e3268", "#584a8a")))
+        B.mat("trim", Mat(ramp_explicit("#3a0a0a", "#6e1414", "#a42424", "#d84a3a", "#ff8a6a")))
+        B.mat("gold", Mat(METAL_GOLD, spec=0.6, shine=16))
+        B.mat("wood", Mat(LEATHER_DARK))
+        B.mat("orb", Mat(ramp_explicit("#5a0a00", "#b03000", "#ff7a10", "#ffd060", "#ffffff"), spec=0.9, emissive=0.6))
+
+    @staticmethod
+    def build(W, B, o):
+        head(B, W, hw=7.0)
+        h = W["head"]
+        # long beard & hair
+        B.ell(at(h, 0, 6.0, -3.0), "hair", (7.6, 7.6, 5.4), group="hair", k=1.4)
+        B.ell(at(h, 0, 2.2, 4.2), "hair", (5.4, 4.2, 3.4), group="beard", k=1.4)
+        B.cone(at(h, 0, 1.0, 5.0), "hair", (0, 0, 0), (0, -11, 2.0), 4.4, 1.2, group="beard", k=1.4)
+        B.ell(at(h, 0, 4.6, 6.5), "hair", (3.6, 1.0, 1.2), group="beard", k=0.6)
+        for sx in (-1, 1):
+            B.ell(at(h, sx * 2.8, 7.2, 6.6), "hair", (2.0, 0.7, 0.8))
+        # wide pointed hat
+        B.add("cyl", at(h, 0, 9.6, -0.5), "hat", (0.9, 13.0, 0.6))
+        B.cone(at(h, 0, 9.6, -0.5), "hat", (0, 0, 0), (2.0, 15.0, -6.0), 7.6, 0.8, group="hat", k=1.5)
+        B.cone(at(h, 0, 9.6, -0.5), "hat", (2.0, 15.0, -6.0), (6.0, 16.0, -10.0), 1.4, 0.4, group="hat", k=1.5)
+        B.add("torus", at(h, 0, 10.8, -0.5), "trim", (7.8, 0.9))
+        torso(B, W, "robe", "robe", "robe", chest=(6.0, 6.0, 4.4), waist=(5.6, 4.6, 4.4))
+        B.add("cyl", at(W["pelvis"], 0, -10.5, 0), "robe", (11.0, 7.0, 1.0), taper=(-11, 11, 1.4, 0.85), group="robe", k=0.5)
+        B.add("cyl", at(W["pelvis"], 0, -20.6, 0), "trim", (0.8, 9.6, 0.4), group="robe", op="paint")
+        B.add("cyl", at(W["pelvis"], 0, 1.4, 0), "trim", (1.0, 5.8, 0.3))
+        B.ell(at(W["chest"], 0, 7.0, -0.4), "trim", (7.2, 2.4, 5.0), group="mantle", k=1.0)
+        for s in ("r", "l"):
+            arm(B, W, s, "robe", "robe", r=(2.4, 2.2, 2.2, 3.4), hand=1.8)
+            B.limb(at(W["el_" + s], 0, -4.2, 0), "trim", 1.0, 3.5, 3.5, order=2)
+            leg(B, W, s, "robe", "robe", "hat", boot=(2.2, 1.5, 3.4))
+        if o.get("show_weapon", True):
+            xf = weapon_xf(W, o, grip=1.6)
+            B.limb(at(xf, 0, 22, 0), "wood", 30, 1.0, 0.8, noise=(0.3, 0.8, 2))
+            for k in range(3):
+                B.cone(at(xf, 0, 22, 0, ry=k * 120), "wood", (0, 0, 0), (2.4, 4.5, 0), 0.9, 0.3)
+            B.sph(at(xf, 0, 25.5, 0), "orb", 2.6)
+
+CAST = {"kael": Kael, "argen": Argen, "mira": Mira, "nell": Nell, "king": King, "soldier": Soldier, "echo_paladin": EchoPaladin, "echo_saint": EchoSaint, "echo_sage": EchoSage}
 
 
 def build_character(cls, W, opts=None):
