@@ -97,6 +97,8 @@ tools/export.html     생성 에셋 미리보기/PNG 저장
   🔍 버튼으로 줌 3단계(js/core/view.js, localStorage 기억). 세로 화면 기본값은 한 단계 줌아웃. 월드맵도 같은 설정을 따름.
 - 테스트 URL: ?test=field&map=forest&x=5&y=17 (필드 단독), ?test=battle&foes=dragon&party=kyle,leon,rhea&lv=30&theme=cave
 
+> 4차 요청(그래픽 전면 재작성·월드맵 자유 이동·상호작용 표시)은 새 채팅에서 진행: HANDOFF.md 참고
+
 ## 다음에 할 만한 것 (선택)
 - 실기기(휴대폰) 성능 확인: 리그 캐릭터는 매 프레임 개별 렌더 타깃을 그림(전투 최대 7개). 느리면 화면 밖/정지 리그는 격프레임 렌더, pixelRatio/그림자 맵/블룸 해상도 하향
 - 월드맵 노드·상점 NPC 등 남은 도트 요소도 리그화 가능 (HERO_DEFS에 정의 추가)
