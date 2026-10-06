@@ -1,0 +1,18 @@
+{
+  "name": "crystal-echoes",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "assets": "cd tools/assetgen && python3 bake.py && python3 bake_monsters.py && python3 textures.py && python3 props.py"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
