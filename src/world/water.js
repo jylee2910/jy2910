@@ -50,8 +50,9 @@ void main(){
   float foam2 = step(vDepth, 0.22 + n1 * 0.1) * step(0.62, fract(n2 * 5.0 - t * 0.2)) * (1.0 - foam);
   col = mix(col, foamCol, foam * 0.8 + foam2 * 0.35);
   // glints (bloom)
-  float g = step(0.985, n1 * n2 * 1.9 + 0.05 * sin(t * 3.0 + q.x * 3.0));
-  col += g * vec3(1.4, 1.4, 1.2) * (1.0 - foam);
+  float n3 = texture2D(tNoise, q * 1.7 + vec2(t * 0.05, t * 0.03)).r;
+  float g = step(0.9, n3) * step(0.62, n1) * step(0.5, sin(t * 2.5 + q.x * 7.0 + q.y * 5.0));
+  col += g * vec3(1.1, 1.1, 0.95) * (1.0 - foam);
   float a = mix(opacity * 0.75, opacity, d) + foam * 0.2;
   gl_FragColor = vec4(col, clamp(a, 0.0, 1.0));
   #include <fog_fragment>
