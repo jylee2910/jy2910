@@ -203,7 +203,7 @@ export class Battle {
     if (a.kind === 'resonance') u.res = 0;
     else if (skill.mp) u.mp = Math.max(0, u.mp - skill.mp);
     // retarget if target died
-    let targets = a.targets.filter((t) => (skill.type === 'revive' ? t.ko : t.alive));
+    let targets = skill.full ? [...this.heroes] : a.targets.filter((t) => (skill.type === 'revive' ? t.ko : t.alive));
     if (!targets.length) {
       const pool = (u.side === 'hero') === (skill.target.startsWith('enem')) ? this.enemies : this.heroes;
       const alt = pool.filter((t) => t.alive);

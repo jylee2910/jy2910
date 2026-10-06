@@ -58,7 +58,7 @@ void main(){
 }`;
 
 export class Water {
-  constructor({ x0, z0, width, depth, level, terrain, step = 0.5, shallow = 0x3fa6c8, deep = 0x103a6a, sky = 0x9fd4f2 }) {
+  constructor({ x0, z0, width, depth, level, terrain, step = 0.5, shallow = 0x3fa6c8, deep = 0x103a6a, sky = 0x9fd4f2, mask = null }) {
     const nx = Math.round(width / step) + 1;
     const nz = Math.round(depth / step) + 1;
     const pos = [];
@@ -75,6 +75,7 @@ export class Water {
         const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
         // skip quads entirely above the terrain
         if (Math.max(dep[a], dep[b], dep[c], dep[d]) < -0.05) continue;
+        if (mask && !mask(pos[a * 3], pos[a * 3 + 2])) continue;
         idx.push(a, c, b, b, c, d);
       }
     const geo = new THREE.BufferGeometry();

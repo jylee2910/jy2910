@@ -55,6 +55,7 @@ class Game {
     if (params.get('battle')) {
       for (const id of (params.get('party') || 'kael,argen,mira,nell').split(',')) this.state.join(id);
       if (params.get('echo')) this.giveEchoes();
+      if (params.get('res')) for (const mm of this.state.party) mm.resonance = +params.get('res');
       this.setScene(new BattleScene(this, params.get('battle'), { onEnd: () => location.reload() }));
     } else if (sc === 'field') {
       this.state.flags.audience = true;

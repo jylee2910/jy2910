@@ -67,7 +67,7 @@ export class PropField {
       const n = geo.attributes.normal;
       for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 0.5, 0.86);
       const key = Object.keys(SWAY).find((k) => name.startsWith(k));
-      const mat = swayMaterial(tex, key ? SWAY[key] : 0, name.startsWith('crystal') ? 0.7 : 0.18);
+      const mat = swayMaterial(tex, key ? SWAY[key] : 0, name.startsWith('crystal') ? 0.4 : 0.18);
       const mesh = new THREE.InstancedMesh(geo, mat, list.length);
       const small = name.startsWith('grass') || name.startsWith('flowers');
       mesh.castShadow = !small;

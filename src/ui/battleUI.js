@@ -19,9 +19,9 @@ export function faceStyle(unit) {
   if (!a) return '';
   const fr = a.meta.anims['battle.idle'].frames[0];
   const [x, y, w, h] = fr;
-  const zoom = unit.boss ? 1.6 : 2.6;
+  const [fx, fy, zoom] = unit.data?.face || [0.55, 0.5, 2.0];
   const s = (52 / h) * zoom;
-  const cx = x + w * (unit.boss ? 0.62 : 0.55), cy = y + h * (unit.boss ? 0.35 : 0.55);
+  const cx = x + w * fx, cy = y + h * fy;
   return `background-image:url(./assets/sprites/${a.meta.image});background-size:${a.w * s}px ${a.h * s}px;background-position:${26 - cx * s}px ${26 - cy * s}px;transform:translate(-50%,-50%) rotate(-45deg) scaleX(-1)`;
 }
 

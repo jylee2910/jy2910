@@ -291,7 +291,7 @@ export class FieldScene {
     this.particles.update(dt);
     this.fx.update(dt, this.camera);
     const glow = this.game.state.flags.chapter1 ? 1 : 0.35;
-    this.crystalLight.intensity = 18 * glow + Math.sin(this.time * 2) * 3 + this.crystalPulse * 25;
+    this.crystalLight.intensity = 10 * glow + Math.sin(this.time * 2) * 2 + this.crystalPulse * 25;
     this.crystalPulse = Math.max(0, this.crystalPulse - dt * 0.6);
     if (this.hud) {
       this.drawMinimap();
@@ -303,7 +303,7 @@ export class FieldScene {
   updatePrompt(free) {
     const p = this.player.position;
     const c = SPOTS.crystal;
-    const near = Math.hypot(p.x - c[0], p.z - c[1]) < 5;
+    const near = Math.hypot(p.x - c[0], p.z - c[1]) < 5.8;
     const pr = this.hud.prompt;
     if (free && near) {
       const s = toScreen(V(c[0], p.y + 4.2, c[1]), this.camera);

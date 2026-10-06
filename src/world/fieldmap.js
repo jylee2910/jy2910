@@ -38,6 +38,8 @@ function plateauNoise(x, z) {
 
 export function fieldHeight(x, z) {
   let h = (fbm(x * 0.035, z * 0.035, 1, 4) - 0.5) * 2.2 + (fbm(x * 0.12, z * 0.12, 2, 2) - 0.5) * 0.5;
+  // keep dry land above the water table away from the river / lake
+  h = Math.max(h, -0.3) + 0.15;
   // castle plateau to the north: cliffs everywhere except a broad ramp at the gate
   const edge = CASTLE_EDGE + plateauNoise(x, 0) * 0.6 * smoothstep(5, 9, Math.abs(x));
   const rampW = lerp(9.0, 0.9, smoothstep(4.5, 8.5, Math.abs(x)));
@@ -118,7 +120,8 @@ export function buildField() {
   group.add(terrain.mesh);
 
   // water ------------------------------------------------------------------
-  const water = new Water({ x0: -66, z0: -58, width: 132, depth: 116, level: -0.55, terrain, step: 0.5 });
+  const waterMask = (x, z) => distToPolyline(x, z, RIVER).d < 7 || Math.hypot(x - LAKE.x, (z - LAKE.z) * 1.15) < LAKE.r + 4;
+  const water = new Water({ x0: -66, z0: -58, width: 132, depth: 116, level: -0.55, terrain, step: 0.5, mask: waterMask });
   group.add(water.mesh);
   const falls = [new Waterfall({ x: WEST_EDGE + 0.6, z: 14, y0: -0.6, y1: 6.6, width: 3.4, rotY: Math.PI / 2 })];
   for (const f of falls) group.add(f.mesh);
@@ -287,7 +290,7 @@ export function buildField() {
     c.position.set(sh.x + dx, sy + 0.5, sh.z + dz);
     ruins.add(c);
   }
-  props.add('crystal', SPOTS.crystal[0], sy + 0.05, SPOTS.crystal[1], { flip: false, scale: 1.5, collide: 1.0 });
+  props.add('crystal', SPOTS.crystal[0], sy + 0.05, SPOTS.crystal[1], { flip: false, scale: 1.7, collide: 1.2 });
   for (let i = 0; i < 5; i++) {
     const a = i * 0.9 + 2.6;
     const x = sh.x + Math.cos(a) * 9, z = sh.z + Math.sin(a) * 9;
@@ -305,7 +308,7 @@ export function buildField() {
     const c = Math.cos(-0.22), s = Math.sin(-0.22);
     const lx = bx * c - bz * s, lz = bx * s + bz * c;
     if (Math.abs(lx) < 4.6 && Math.abs(lz) < 1.3) return true;
-    if (terrain.heightAt(x, z) < -0.35) return false;
+    if (terrain.heightAt(x, z) < -0.45) return false;
     if (terrain.slopeAt(x, z) > 1.1) return false;
     if (z < front + 1.6 && z > front - 30 && Math.abs(x) < 23) return false; // castle wall line
     for (const c2 of props.colliders) if (!c2.wall && Math.hypot(x - c2.x, z - c2.z) < c2.r + r) return false;

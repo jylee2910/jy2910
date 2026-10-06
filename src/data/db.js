@@ -107,11 +107,12 @@ export const HEROES = {
 
 // --------------------------------------------------------------- enemies
 export const ENEMIES = {
-  imp: { name: '임프', sprite: 'm_imp', hp: 210, atk: 26, def: 14, mag: 22, mdf: 12, spd: 18, brk: 60, weak: ['light', 'fire'], resist: ['dark'], skills: [['claw', 3], ['dark_ball', 1]], exp: 24, gold: 18, scale: 1.0 },
-  wolf: { name: '황혼 늑대', sprite: 'm_wolf', hp: 280, atk: 32, def: 16, mag: 10, mdf: 10, spd: 26, brk: 70, weak: ['fire'], resist: [], skills: [['bite', 4], ['howl', 1]], exp: 30, gold: 22, scale: 1.0 },
-  crawler: { name: '가시 갑각게', sprite: 'm_crawler', hp: 620, atk: 38, def: 34, mag: 10, mdf: 14, spd: 14, brk: 150, weak: ['thunder'], resist: ['fire'], skills: [['pinch', 1]], exp: 60, gold: 50, scale: 1.0 },
-  ember: { name: '불꽃 정령', sprite: 'm_ember', hp: 200, atk: 18, def: 14, mag: 30, mdf: 22, spd: 24, brk: 55, weak: ['ice'], resist: ['fire'], absorb: ['fire'], skills: [['ember_shot', 1]], exp: 28, gold: 20, scale: 1.0 },
+  imp: { face: [0.6, 0.42, 2.4], name: '임프', sprite: 'm_imp', hp: 210, atk: 26, def: 14, mag: 22, mdf: 12, spd: 18, brk: 60, weak: ['light', 'fire'], resist: ['dark'], skills: [['claw', 3], ['dark_ball', 1]], exp: 24, gold: 18, scale: 1.0 },
+  wolf: { face: [0.72, 0.42, 2.2], name: '황혼 늑대', sprite: 'm_wolf', hp: 280, atk: 32, def: 16, mag: 10, mdf: 10, spd: 26, brk: 70, weak: ['fire'], resist: [], skills: [['bite', 4], ['howl', 1]], exp: 30, gold: 22, scale: 1.0 },
+  crawler: { face: [0.68, 0.55, 1.6], name: '가시 갑각게', sprite: 'm_crawler', hp: 620, atk: 38, def: 34, mag: 10, mdf: 14, spd: 14, brk: 150, weak: ['thunder'], resist: ['fire'], skills: [['pinch', 1]], exp: 60, gold: 50, scale: 1.0 },
+  ember: { face: [0.5, 0.5, 2.0], name: '불꽃 정령', sprite: 'm_ember', hp: 200, atk: 18, def: 14, mag: 30, mdf: 22, spd: 24, brk: 55, weak: ['ice'], resist: ['fire'], absorb: ['fire'], skills: [['ember_shot', 1]], exp: 28, gold: 20, scale: 1.0 },
   wyvern: {
+    face: [0.66, 0.3, 2.4],
     name: '고룡 그림윙', sprite: 'm_wyvern', hp: 4200, atk: 48, def: 30, mag: 40, mdf: 26, spd: 24, brk: 420, weak: ['ice', 'thunder'], resist: ['fire'], boss: true,
     skills: [['tail_lash', 2], ['dive', 2], ['flame_breath', 2], ['roar', 1]], exp: 600, gold: 500, scale: 1.0,
   },

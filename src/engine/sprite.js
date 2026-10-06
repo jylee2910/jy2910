@@ -241,7 +241,7 @@ export class GhostSprite {
     const m = this.meta;
     const [x, y, w, h] = m.frames[this.frame];
     const W = this.atlas.w, H = this.atlas.h;
-    const s = PX * 1.08;
+    const s = PX * 1.04;
     this.mesh.scale.set(w * s, h * s, 1);
     const ox = (w / 2 - m.ax) * s;
     this.mesh.position.set(flip ? -ox : ox, (m.ay - h / 2) * s, 0);
@@ -266,7 +266,7 @@ export class GhostSprite {
       const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
       this.root.rotation.set(e.x * 0.45, e.y, 0, 'YXZ');
     }
-    this.mat.opacity = 0.32 + 0.12 * Math.sin(pulse * 3);
+    this.mat.opacity = 0.2 + 0.07 * Math.sin(pulse * 3);
   }
 
   sync() {}

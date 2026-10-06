@@ -62,6 +62,12 @@ export class BattleScene {
     this.camPos = V(0.0, 3.3, 12.2);
     this.camLook = V(-0.2, 1.1, -0.4);
     this.shake = 0;
+    this.boss = !!this.battle.troop.boss;
+    this.K = this.boss ? 1.55 : 1;
+    if (this.boss) {
+      this.camPos = V(0.4, 4.4, 17);
+      this.camLook = V(-0.9, 2.2, -0.6);
+    }
     this.placeUnits();
     this.onPick = null;
     this._click = (e) => this.onPick?.(e.clientX, e.clientY);
@@ -83,7 +89,7 @@ export class BattleScene {
       this.actors.set(u, a);
     });
     const enemies = this.battle.enemies;
-    const slots = enemies.length === 1 ? [[-3.2, -0.9]] : enemies.length === 2 ? [[-2.6, -1.6], [-3.4, 0.7]] : [[-2.3, -2.2], [-4.0, -0.5], [-2.5, 1.3]];
+    const slots = enemies.length === 1 ? [[this.boss ? -4.4 : -3.2, this.boss ? -1.4 : -0.9]] : enemies.length === 2 ? [[-2.6, -1.6], [-3.4, 0.7]] : [[-2.3, -2.2], [-4.0, -0.5], [-2.5, 1.3]];
     enemies.forEach((u, i) => {
       const a = new BattleActor(u, this.scene);
       const [x, z] = slots[i] || [-3 - i, 0];
@@ -162,6 +168,7 @@ export class BattleScene {
   }
 
   defaultCam(dur = 0.8) {
+    if (this.boss) return this.moveCam(V(0.4, 4.4, 17), V(-0.9, 2.2, -0.6), dur);
     return this.moveCam(V(0.0, 3.3, 12.2), V(-0.2, 1.1, -0.4), dur);
   }
 
@@ -214,7 +221,7 @@ export class BattleScene {
         a.sprite.uniforms.uTintAmt.value = 0.5;
       } else if (!a.dying) a.sprite.uniforms.uTintAmt.value = 0;
       if (a.ghost) {
-        a.ghost.root.position.copy(a.position).add(V(0.55, 0.05, -0.45));
+        a.ghost.root.position.copy(a.position).add(V(0.5, 0.05, -0.7));
         const anim = a.sprite.anim;
         if (a.ghost.anim !== anim && a.ghost.atlas.meta.anims[anim]) a.ghost.play(anim);
         a.ghost.update(dt, false, this.camera, this.time);
@@ -265,7 +272,7 @@ export class BattleScene {
       this.tween(0.6, (k) => (post.radial.value = 1.2 * (1 - k))),
       ...enemies.map(([u, a]) => this.moveActor(a, a.home.clone(), 0.7)),
     ]);
-    await this.moveCam(V(0.0, 3.3, 12.2), V(-0.2, 1.1, -0.4), 1.1);
+    await this.defaultCam(1.1);
     const tut = this.battle.troop.tutorial;
     if (tut && TUTORIALS[tut] && !this.game.state.flags['tut_' + tut]) {
       this.game.state.flags['tut_' + tut] = true;
@@ -382,15 +389,15 @@ export class BattleScene {
     if (hero) {
       // camera follows the hero's dash
       const mid = a.position.clone().lerp(t0.position, 0.5);
-      this.moveCam(V(mid.x + 1.2, 2.6, mid.z + 7.5), V(mid.x - 0.4, 1.1, mid.z - 0.4), 0.55);
+      this.moveCam(V(mid.x + 1.2, 2.6 * this.K, mid.z + 7.5 * this.K), V(mid.x - 0.4, 1.1 * this.K, mid.z - 0.4), 0.55);
       a.sprite.play('battle.run');
-      const dest = multi ? V(-0.6, 0, 0) : t0.position.clone().add(V(1.55 + (targets[0].boss ? 1.6 : 0), 0, 0.15));
+      const dest = multi ? V(-0.6, 0, 0) : t0.position.clone().add(V(1.55 + (targets[0].boss ? 2.6 : 0), 0, 0.6));
       await this.moveActor(a, dest, 0.38);
     } else {
       // enemy lunge
       const dir = t0.position.clone().sub(a.position).setY(0).normalize();
       this.moveActor(a, a.home.clone().add(dir.multiplyScalar(u.boss ? 0.8 : 1.6)), 0.25);
-      this.moveCam(V(a.position.x + 3, 2.8, a.position.z + 8.5), V(a.position.x + 1.2, 1.2, -0.4), 0.5);
+      this.moveCam(V(a.position.x + 3 * this.K, 2.8 * this.K, a.position.z + 8.5 * this.K), V(a.position.x + 1.2 * this.K, 1.2 * this.K, -0.4), 0.5);
     }
     const hitsPer = Math.max(1, Math.round(results.length / targets.length));
     for (let h = 0; h < hitsPer; h++) {
@@ -433,12 +440,14 @@ export class BattleScene {
     audio.sfx(type === 'heal' || type === 'revive' || type === 'item' ? 'heal' : type === 'buff' ? 'buff' : 'magic');
     // camera favours the caster then swings to the targets
     if (hero) this.moveCam(V(a.position.x - 1.5, 2.4, a.position.z + 7), V(a.position.x - 1, 1.2, a.position.z - 0.6), 0.5);
-    else this.moveCam(V(a.position.x + 2.6, 2.8, a.position.z + 8.5), V(a.position.x + 1, 1.3, -0.4), 0.5);
+    else this.moveCam(V(a.position.x + 2.6 * this.K, 2.8 * this.K, a.position.z + 8.5 * this.K), V(a.position.x + this.K, 1.3 * this.K, -0.4), 0.5);
     this.fx.play('sparkle_gold', a.position.clone(), { scale: 1.2, anchorBottom: true });
     await this.wait(big ? 0.4 : 0.6);
     const allies = targets.every((t) => t.side === u.side);
     const center = targets.reduce((s, t) => s.add(this.actors.get(t).position), V(0, 0, 0)).multiplyScalar(1 / targets.length);
-    await this.moveCam(V(center.x + (allies === hero ? 0.6 : -0.6), 2.9, center.z + 8.6), V(center.x, 1.1, center.z - 0.4), 0.45);
+    const bossT = targets.some((t) => t.boss);
+    const kk = bossT ? 1.7 : 1;
+    await this.moveCam(V(center.x + (allies === hero ? 0.6 : -0.6), 2.9 * kk, center.z + 8.6 * kk), V(center.x, 1.1 * kk, center.z - 0.4), 0.45);
     const sound = { fire: 'fire', ice: 'ice', thunder: 'thunder', holy: 'holy', dark: 'dark', heal: 'heal', buff: 'buff', debuff: 'dark' }[fxName];
     if (sound) audio.sfx(sound);
     for (const t of targets) {
