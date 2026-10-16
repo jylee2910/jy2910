@@ -401,7 +401,8 @@ export class BattleScene {
     }
     const hitsPer = Math.max(1, Math.round(results.length / targets.length));
     for (let h = 0; h < hitsPer; h++) {
-      a.sprite.play('battle.attack', { restart: true, loop: false });
+      const anim = act.kind === 'skill' && act.skill !== 'attack' && a.sprite.has('battle.skill') ? 'battle.skill' : 'battle.attack';
+      a.sprite.play(anim, { restart: true, loop: false });
       await this.wait(hero ? 0.2 : 0.22);
       audio.sfx(big ? 'bighit' : fxName.startsWith('slash') ? 'slash' : 'hit');
       for (const t of targets) {

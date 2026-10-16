@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "assets": "cd tools/assetgen && python3 bake.py && python3 bake_monsters.py && python3 textures.py && python3 props.py"
+    "assets": "cd tools/assetgen && python3 bake.py && python3 bake_monsters.py && python3 textures.py && python3 props.py && python3 import_sheet.py"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -110,7 +110,9 @@ def bake(name, pool):
 
 
 if __name__ == "__main__":
-    names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(CAST)
+    # characters whose sprites come from an imported sheet (import_sheet.py) are not re-baked
+    IMPORTED = {"nell"}
+    names = [a for a in sys.argv[1:] if not a.startswith("--")] or [n for n in CAST if n not in IMPORTED]
     with Pool(4) as pool:
         for n in names:
             atlas = bake(n, pool)
