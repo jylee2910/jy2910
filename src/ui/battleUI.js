@@ -13,7 +13,8 @@ const EL_ICON = { fire: 'fire', ice: 'ice', thunder: 'thunder', light: 'light', 
 
 export function faceStyle(unit) {
   if (unit.side === 'hero') {
-    return `background-image:url(${portraitURL(unit.sprite)});background-size:260%;background-position:50% 30%`;
+    const [sz, pos] = unit.member?.def.face || ['260%', '50% 30%'];
+    return `background-image:url(${portraitURL(unit.sprite)});background-size:${sz};background-position:${pos}`;
   }
   const a = assets.atlas[unit.sprite];
   if (!a) return '';

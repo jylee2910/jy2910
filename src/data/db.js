@@ -88,6 +88,7 @@ export const HEROES = {
     grow: { hp: 28, mp: 3, atk: 3.6, def: 1.6, mag: 1.4, mdf: 1.4, spd: 1.1 },
     skills: ['flash_cut', 'moon_fang'], weapon: '무라사메', armor: '흑요 코트', acc: '은빛 머리끈',
     color: '#a080e0',
+    face: ['175%', '50% 52%'],
   },
   mira: {
     name: '미라', title: '수습 백마도사', sprite: 'mira', role: '힐러', level: 5,
@@ -102,6 +103,7 @@ export const HEROES = {
     grow: { hp: 26, mp: 3, atk: 2.6, def: 1.8, mag: 1.8, mdf: 1.6, spd: 1.2 },
     skills: ['gear_smash', 'firebomb', 'first_aid'], weapon: '기어 해머', armor: '작업 재킷', acc: '황동 고글',
     color: '#ff8a3a',
+    face: ['230%', '50% 24%'],
   },
 };
 

@@ -162,7 +162,7 @@ def render(args):
 
 
 if __name__ == "__main__":
-    names = [a for a in sys.argv[1:] if not a.startswith("--")] or ["kael", "argen", "mira", "king", "soldier", "echo_paladin", "echo_saint", "echo_sage"]
+    names = [a for a in sys.argv[1:] if not a.startswith("--")] or ["kael", "mira", "king", "soldier", "echo_paladin", "echo_saint", "echo_sage"]
     os.makedirs(OUT, exist_ok=True)
     jobs = [(n, e) for n in names for e in (EXPR if n in ("kael", "argen", "mira", "nell") else ["normal", "angry", "surprised"])]
     if "--quick" in sys.argv:
